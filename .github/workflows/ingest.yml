@@ -1,0 +1,21 @@
+name: Vacancy ingest pipeline
+
+on:
+  schedule:
+    # Every 4 hours. A single invocation only deep-analyzes a small batch
+    # (see ANALYZE_BATCH_LIMIT in app/api/cron/ingest/route.ts) to stay
+    # inside a serverless time limit, so running a few times a day lets the
+    # backlog drain without any one run taking too long.
+    - cron: '0 */4 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the ingest endpoint
+        run: |
+          curl --fail --show-error --silent \
+            --request POST \
+            --header "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.INGEST_URL }}"

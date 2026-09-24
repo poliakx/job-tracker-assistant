@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+.card-shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+:root {
+  --accent: #1e40af; /* muted blue */
+  --muted: #6b7280; /* gray-500 */
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Mobile touch improvements */
+button, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* larger tap targets on small screens */
+@media (max-width: 640px) {
+  button {
+    padding: 12px 14px;
+    min-height: 44px;
+  }
+
+  .mobile-add-btn {
+    position: fixed;
+    right: 16px;
+    bottom: 80px; /* above the mobile tab bar */
+    z-index: 60;
+    border-radius: 9999px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "extends": "next/core-web-vitals",
+  "plugins": ["import"],
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "project": "./tsconfig.json"
+      }
+    }
+  },
+  "rules": {
+    "import/no-restricted-paths": [
+      "error",
+      {
+        "zones": [
+          {
+            "target": "./frontend",
+            "from": "./backend",
+            "message": "frontend/ must not import backend/ — server-only code (Prisma, API keys, LLM calls) would leak into the client bundle. Fetch from an API route instead."
+          },
+          {
+            "target": "./backend",
+            "from": "./frontend",
+            "message": "backend/ must not import frontend/ — backend code has no business depending on React/UI code."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["app/**/page.tsx", "app/layout.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/backend", "@/backend/*"],
+                "message": "Pages/layouts in this project are client components — import backend/ only inside app/api/**/route.ts, never directly from a page."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

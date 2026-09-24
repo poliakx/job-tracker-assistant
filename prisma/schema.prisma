@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ApplicationStatus {
+  applied
+  interview
+  technical_task
+  offer
+  no_answer
+  rejected
+}
+
+enum ApplicationSource {
+  linkedin
+  justjoinit
+  nofluffjobs
+  pracuj
+  company_website
+  other
+  // Added for Phase 7: a Vacancy promoted into an Application records its
+  // real source instead of being mislabeled "other".
+  theprotocol
+}
+
+model JobApplication {
+  id            String            @id @default(cuid())
+  company       String
+  position      String
+  jobUrl        String?
+  status        ApplicationStatus
+  source        ApplicationSource
+  appliedDate   DateTime
+  followUpDate  DateTime?
+  contactPerson String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // set once a Vacancy is promoted into an application (see Vacancy.applicationId)
+  vacancy Vacancy?
+}
+
+enum VacancyStatus {
+  NEW
+  SHORTLISTED
+  DISMISSED
+  APPLIED
+}
+
+enum SuggestedResume {
+  FULLSTACK
+  BACKEND
+  FRONTEND
+}
+
+// A vacancy found by the ingestion pipeline, not yet (or not ever) an Application.
+// Kept separate from JobApplication: most vacancies are dismissed and never applied to.
+model Vacancy {
+  id          String    @id @default(cuid())
+  source      String
+  externalId  String
+  url         String
+  title       String
+  company     String
+  location    String?
+  remote      Boolean?
+  description String
+  postedAt    DateTime?
+  fetchedAt   DateTime  @default(now())
+
+  status          VacancyStatus    @default(NEW)
+  fitScore        Int?
+  analysis        Json?
+  suggestedResume SuggestedResume?
+
+  // Output of the cheap rule filter (lib/filter.ts): string[], or null
+  // until the filter has run. Not the same as `analysis` (Phase 5's LLM
+  // output) — this is fast/free heuristics, always shown even for
+  // vacancies the filter didn't dismiss.
+  filterReasons Json?
+
+  applicationId String?         @unique
+  application   JobApplication? @relation(fields: [applicationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, externalId])
+  @@index([status, fitScore])
+}
+
+// The candidate profile that drives lib/filter.ts and lib/analyze.ts's
+// prompts. A singleton row (id is always "default") so there's exactly one
+// live profile, editable via the Phase-9 AI interview at /profile. `data`
+// mirrors lib/profile.ts's CandidateProfile shape; that file's hardcoded
+// object becomes the seed/fallback used before this row is ever created.
+model Profile {
+  id        String   @id
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One execution of the ingest → filter → analyze pipeline, for observability.
+model PipelineRun {
+  id         String    @id @default(cuid())
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  source     String
+  fetched    Int       @default(0)
+  newCount   Int       @default(0)
+  analyzed   Int       @default(0)
+  errors     Json?
+
+  // { triageInputTokens, triageOutputTokens, deepInputTokens, deepOutputTokens }
+  tokenUsage Json?
+}
