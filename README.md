@@ -36,6 +36,27 @@ npm run dev
 | `CRON_SECRET` | the scheduled pipeline endpoint | any random string — generate one with `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` |
 | `ANALYSIS_MODEL_TRIAGE` / `ANALYSIS_MODEL_DEEP` | vacancy analysis | model IDs for the cheap triage pass and the deep analysis pass |
 | `ANALYSIS_DAILY_CAP` | vacancy analysis | max deep analyses per calendar day, to bound API cost |
+| `SCRAPER_CONTACT_EMAIL` | job sources | contact address sent in the User-Agent so site owners can reach you |
+| `DISABLED_SOURCES` | job sources | comma-separated source names to switch off without a code change |
+
+## Job sources and responsible data collection
+
+Vacancies come from pluggable adapters registered in
+`backend/sources/index.ts` (which also has the checklist for adding one).
+This repository ships the infrastructure without any site-specific
+adapters; add sources you are allowed to use. Every adapter goes through
+one shared HTTP client (`backend/sources/http.ts`) that:
+
+- checks `robots.txt` before every request (RFC 9309 matching in
+  `robots.ts`) and refuses disallowed URLs,
+- sends an honest User-Agent with a contact address,
+- rate-limits requests per source, with a timeout and bounded,
+  `Retry-After`-aware retries,
+- never tries to get around anti-bot protection.
+
+`robots.txt` is only the first check. Before adding a source, read the
+site's terms: prefer official APIs and feeds, and skip any site whose terms
+forbid automated access.
 
 ## Manual pipeline scripts
 
