@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { PipelineRun, Vacancy } from '@/types'
 
-// Separate from useApplications on purpose (per PLAN.md). No localStorage
+// Separate from useApplications on purpose (per docs/PLAN.md). No localStorage
 // fallback here the way there is for applications: a vacancy is only
 // useful with its server-side analysis, so if the API is unreachable
 // that's a real error to show, not something to paper over.

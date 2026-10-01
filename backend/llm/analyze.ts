@@ -13,7 +13,7 @@ export const TriageResultSchema = z.object({
 })
 export type TriageResult = z.infer<typeof TriageResultSchema>
 
-// Mirrors PLAN.md's deep analysis schema exactly.
+// Mirrors docs/PLAN.md's deep analysis schema exactly.
 export const DeepAnalysisSchema = z.object({
   fitScore: z.number().min(0).max(100),
   verdict: z.enum(['STRONG', 'MAYBE', 'WEAK']),

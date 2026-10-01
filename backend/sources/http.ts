@@ -1,4 +1,4 @@
-// The one HTTP client every job-board adapter must use, so PLAN.md rule 9
+// The one HTTP client every job-board adapter must use, so docs/PLAN.md rule 9
 // ("be a polite client") holds for every source by construction instead of
 // by each adapter remembering to do it:
 // - an honest User-Agent with a contact address,

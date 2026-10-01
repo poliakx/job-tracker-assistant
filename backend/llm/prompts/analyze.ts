@@ -1,4 +1,4 @@
-// Named prompt constants/builders for backend/analyze.ts (PLAN.md rule: keep
+// Named prompt constants/builders for backend/analyze.ts (docs/PLAN.md rule: keep
 // prompts here, not inline strings scattered through the analysis code).
 import type { CandidateProfile, EnglishAssessmentResult } from '@/types'
 

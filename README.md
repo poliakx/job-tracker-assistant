@@ -1,7 +1,15 @@
 # Application Tracker
 
-A personal job-search assistant (Next.js + Prisma + PostgreSQL + Claude):
+A personal job-search assistant built with Next.js, Prisma, PostgreSQL and
+the Claude API. It interviews you to build a structured profile, then uses
+that profile — and only that profile — to write your resume, assess your
+English and score how well you fit a vacancy.
 
+## Features
+
+- **Dashboard** (`/`) — application stats and pipeline, the top-scoring
+  vacancies awaiting a decision, and the status of your profile, resume
+  and English assessment.
 - **Profile interview** (`/profile`) — a full AI interview (work history,
   projects, education, languages, goals) that builds a structured profile.
   Every job and project keeps its kind (commercial / internship /
@@ -17,14 +25,38 @@ A personal job-search assistant (Next.js + Prisma + PostgreSQL + Claude):
 - **English level** (`/english`) — a quiz (scored in code), two writing
   tasks and a short chat, assessed into CEFR levels per skill. The latest
   result feeds the match and the resume.
-- **Applications** (`/applications`) — the original tracker.
+- **Applications** (`/applications`) — track every application you send:
+  company, role, source, status (applied, interview, technical task, offer, rejected, no answer)
+  and notes. A promising vacancy can be promoted into an application in
+  one click.
 - **Sources** (`/sources`) — add job boards for automated collection
   without code: Greenhouse, Lever and Ashby boards, RSS/Atom feeds and
   pages with schema.org JobPosting data, each with its legal basis recorded.
 
 Automated vacancy collection (the job-board pipeline described below) is
-still in the code but **off by default** — see `SCRAPING_ENABLED`. See
-`PLAN.md` for the original feature plan.
+still in the code but **off by default** — see `SCRAPING_ENABLED`.
+[`docs/PLAN.md`](docs/PLAN.md) is the original feature plan, kept for
+history.
+
+## Technical highlights
+
+- **Structured LLM output.** Every Claude call goes through one tool-use
+  helper and is validated with zod before anything is saved; a malformed
+  answer is an error, not silently stored data.
+- **The LLM never invents facts.** Resumes are built only from the saved
+  profile, contact details never pass through the model, and skills the
+  profile doesn't back up are flagged. Deterministic parts (quiz scoring,
+  the rule filter) are plain code, not prompts.
+- **Bounded API cost.** A cheap triage model screens vacancies before the
+  deep analysis, and deep analyses are capped per day.
+- **Polite, auditable data collection.** One shared HTTP client enforces
+  `robots.txt` (RFC 9309), rate limits and an honest User-Agent; every
+  source must record the terms that allow it.
+- **Enforced architecture.** ESLint rules keep `frontend/` and `backend/`
+  apart and forbid raw `fetch` in source adapters.
+- **Tested.** Unit tests (Vitest) cover the API routes, prompts,
+  normalizers, the pipeline and the pure helpers, using fixtures with
+  made-up content.
 
 ## Getting started
 
@@ -48,13 +80,20 @@ npx prisma migrate dev
 npm run dev
 ```
 
+5. Run the checks:
+
+```
+npm test           # unit tests (Vitest)
+npm run lint       # ESLint, including the frontend/backend boundary rules
+```
+
 ## Environment variables
 
 | Variable | Required for | Notes |
 |---|---|---|
 | `DATABASE_URL` | everything | PostgreSQL connection string |
-| `ANTHROPIC_API_KEY` | vacancy analysis | from console.anthropic.com; server-side only |
-| `CRON_SECRET` | the scheduled pipeline endpoint | any random string — generate one with `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` |
+| `ANTHROPIC_API_KEY` | every AI feature: profile interview, resume, English assessment, vacancy analysis | from console.anthropic.com; server-side only |
+| `CRON_SECRET` | the pipeline endpoint (only with `SCRAPING_ENABLED=true`) | any random string — generate one with `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` |
 | `ANALYSIS_MODEL_TRIAGE` / `ANALYSIS_MODEL_DEEP` | vacancy analysis | model IDs for the cheap triage pass and the deep analysis pass |
 | `ANALYSIS_DAILY_CAP` | vacancy analysis | max deep analyses per calendar day, to bound API cost |
 | `SCRAPER_CONTACT_EMAIL` | job sources | contact address sent in the User-Agent so site owners can reach you |
@@ -126,10 +165,13 @@ npm run analyze:once [batch]   # run LLM triage + deep analysis (default batch: 
 
 `app/api/cron/ingest/route.ts` runs one bounded batch of ingest → filter →
 analyze per call, and requires `Authorization: Bearer <CRON_SECRET>` —
-anything else gets a 401. `.github/workflows/ingest.yml` calls it every 4
-hours, plus `workflow_dispatch` for a manual trigger from the Actions tab.
+anything else gets a 401, and it returns 403 unless `SCRAPING_ENABLED=true`.
 
-To set this up after deploying the app:
+`.github/workflows/ingest.yml` calls it. Because collection is off by
+default, the workflow ships with only `workflow_dispatch` (a manual trigger
+from the Actions tab); the 4-hour `schedule` is commented out in the file.
+
+To turn it on after deploying the app:
 
 1. In the GitHub repo → **Settings → Secrets and variables → Actions**, add:
    - `INGEST_URL` — your deployed app's ingest endpoint, e.g.
@@ -137,11 +179,12 @@ To set this up after deploying the app:
    - `CRON_SECRET` — the **same value** you set for `CRON_SECRET` in the
      deployed app's environment variables (not the `.env` file — your
      hosting provider's own env var settings)
-2. Deploy the app with `CRON_SECRET` (and the other variables above) set
-   in its environment.
+2. Deploy the app with `SCRAPING_ENABLED=true`, `CRON_SECRET` (and the
+   other variables above) set in its environment.
 3. Trigger the workflow manually once from the Actions tab
-   (`workflow_dispatch`) to confirm it returns success before waiting for
-   the schedule.
+   (`workflow_dispatch`) to confirm it returns success.
+4. Uncomment the `schedule` block in `.github/workflows/ingest.yml` to run
+   it every 4 hours.
 
 A run is safe to trigger more than once — an already-ingested vacancy is
 never re-fetched, and an already-analyzed one is never re-analyzed (see
@@ -174,6 +217,7 @@ never re-fetched, and an already-analyzed one is never re-analyzed (see
 - `types/` — shared type contracts (`JobApplication`, `Vacancy`,
   `CandidateProfile`, ...) imported by both `backend/` and `frontend/`.
 - `scripts/` — manual CLI entry points (`ingest:once`, `analyze:once`).
+- `docs/` — the original feature plan (historical).
 - `prisma/` — schema and migrations (kept at the root; the Prisma CLI
   expects it there).
 
@@ -181,3 +225,7 @@ Imports across these boundaries use the `@/` path alias (e.g.
 `@/backend/db`, `@/frontend/hooks/useVacancies`, `@/types`) instead of
 relative paths, configured in `tsconfig.json` and mirrored in
 `vitest.config.ts`.
+
+## License
+
+[MIT](LICENSE)

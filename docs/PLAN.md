@@ -1,3 +1,8 @@
+> **Historical document.** This is the original phase-by-phase plan the
+> vacancy pipeline was built from, written as instructions for an AI coding
+> assistant. File paths in it (`lib/`, `components/`) predate the move to
+> `backend/` and `frontend/`; the README describes the current code.
+
 # PLAN: Automated vacancy discovery and analysis for the job tracker
 
 You are implementing this feature in an existing Next.js app. Read this whole file before writing any code. Work phase by phase and follow the rules in section 3.

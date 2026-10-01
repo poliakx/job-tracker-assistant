@@ -8,7 +8,7 @@
 //   ./configured.ts. Prefer this whenever the site offers one of those.
 //
 // Adding a code adapter (see CONTRIBUTING.md for the full checklist):
-// 1. Check the site may be used at all (PLAN.md rule 9): its robots.txt
+// 1. Check the site may be used at all (docs/PLAN.md rule 9): its robots.txt
 //    allows the pages you need for our User-Agent, and its terms don't
 //    forbid automated access. No LinkedIn; never work around anti-bot
 //    protection. If it isn't allowed, skip the site.
