@@ -197,7 +197,8 @@ export async function interviewStep(
     toolDescription: 'Submit your next message to the candidate and whether the interview is complete.',
     inputSchema: INTERVIEW_STEP_INPUT_SCHEMA,
     schema: InterviewStepSchema,
-    // Ukrainian text costs ~2x the tokens of English, and a recap-style turn
+    // Non-English replies (the interview answers in the candidate's language)
+    // can cost ~2x the tokens of English, and a recap-style turn
     // measured ~500 tokens — the old 500 limit cut replies off mid-JSON.
     // "Keep it short" is the prompt's job; this is only a safety ceiling.
     maxTokens: 2000,

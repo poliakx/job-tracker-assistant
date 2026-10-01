@@ -32,7 +32,7 @@ const TEST_INPUT_SCHEMA: Anthropic.Tool.InputSchema = {
           prompt: { type: 'string' },
           options: { ...STRING_LIST, description: 'Exactly 4 options.' },
           answerIndex: { type: 'integer', minimum: 0, maximum: 3 },
-          explanation: { type: 'string', description: 'In Ukrainian, one sentence.' },
+          explanation: { type: 'string', description: 'In English, one sentence.' },
         },
         required: ['id', 'level', 'skill', 'passage', 'prompt', 'options', 'answerIndex', 'explanation'],
       },

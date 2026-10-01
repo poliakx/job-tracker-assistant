@@ -66,7 +66,7 @@ export function buildTailoredResumeSystemPrompt(profile: CandidateProfile, engli
     '- Aim the headline and summary at this role.',
     "- A requirement the candidate doesn't meet stays off the resume. It is a gap to close, not a line to add.",
     '',
-    'changes: 3-6 short items in Ukrainian saying what you emphasized, reordered or reworded for this vacancy and ' +
+    'changes: 3-6 short items in English saying what you emphasized, reordered or reworded for this vacancy and ' +
       'why. If an important requirement could not be addressed because the profile lacks it, say so as one item.',
     '',
     'Candidate profile:',

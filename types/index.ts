@@ -334,7 +334,7 @@ export interface EnglishAssessmentResult {
     writing: CefrLevel
     interaction: CefrLevel
   }
-  // Ukrainian, 2-4 sentences.
+  // English, 2-4 sentences.
   summary: string
   strengths: string[]
   mistakes: { original: string; correction: string; explanation: string }[]

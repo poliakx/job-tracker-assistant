@@ -91,7 +91,7 @@ describe('analyzeVacancyDeep', () => {
   const validDeepResult = {
     fitScore: 72,
     verdict: 'MAYBE',
-    summary: 'Непогана відповідність, але бракує TypeScript.',
+    summary: 'A decent match, but TypeScript is missing.',
     matchedSkills: ['Node.js', 'PostgreSQL'],
     missingSkills: ['TypeScript'],
     redFlags: [],

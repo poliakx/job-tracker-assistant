@@ -130,7 +130,7 @@ export function buildDeepSystemPrompt(profile: CandidateProfile, english: Englis
       'evidence than a measured one.',
     '',
     'gaps: everything standing between the candidate and a strong match for this vacancy, most ' +
-      'important first, each with one concrete action in Ukrainian. Use NOT_IN_PROFILE when the ' +
+      'important first, each with one concrete action in English. Use NOT_IN_PROFILE when the ' +
       'profile simply never mentions a requirement — the candidate may actually have it, so the ' +
       'action should say: if you have it, add it to your profile (with where you used it); if not, ' +
       'how to get it. Use WEAK_EVIDENCE for a skill that is claimed but no job or project shows it ' +
@@ -144,8 +144,8 @@ export function buildDeepSystemPrompt(profile: CandidateProfile, english: Englis
       'relevant project would otherwise be buried, or the vacancy uses different terms for skills ' +
       "they have). false when the fit is too weak for wording to matter, or a general resume already fits.",
     '',
-    'summary must be written in Ukrainian, 2-3 sentences. applyAdvice, gap actions and ' +
-      'tailoringReason are in Ukrainian too. Every other field is in English.',
+    'summary must be written in English, 2-3 sentences, as must applyAdvice, gap actions and ' +
+      'tailoringReason.',
     '',
     UNTRUSTED_DATA_NOTICE,
   ].join('\n')
