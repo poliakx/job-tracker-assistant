@@ -88,6 +88,8 @@ model Vacancy {
   applicationId String?         @unique
   application   JobApplication? @relation(fields: [applicationId], references: [id])
 
+  resume Resume?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -107,6 +109,33 @@ model Profile {
   updatedAt DateTime @updatedAt
 }
 
+// A generated resume (text sections only — contact details are rendered
+// from Profile at view time). vacancyId null = the base resume; set = a
+// version tailored to that vacancy, deleted along with it.
+model Resume {
+  id        String   @id @default(cuid())
+  vacancyId String?  @unique
+  vacancy   Vacancy? @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  // ResumeContent (types/index.ts)
+  content   Json
+  // string[]: what a tailored version changed vs. the profile, and why
+  changes   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One completed English test (/english). The latest one feeds the match
+// analysis and the resume's languages section.
+model EnglishAssessment {
+  id           String   @id @default(cuid())
+  overallLevel String
+  // EnglishAssessmentResult (types/index.ts)
+  result       Json
+  // QuizScore (types/index.ts)
+  quizScore    Json
+  createdAt    DateTime @default(now())
+}
+
 // One execution of the ingest → filter → analyze pipeline, for observability.
 model PipelineRun {
   id         String    @id @default(cuid())
@@ -120,4 +149,40 @@ model PipelineRun {
 
   // { triageInputTokens, triageOutputTokens, deepInputTokens, deepOutputTokens }
   tokenUsage Json?
+}
+
+// The kinds of source a user can add from /sources without writing code.
+// Only formats a site publishes *for* automated reading: public job-board
+// APIs of applicant tracking systems, RSS/Atom feeds, and schema.org
+// JobPosting data. There is deliberately no "any HTML page" kind.
+enum SourceKind {
+  greenhouse
+  lever
+  ashby
+  rss
+  jsonld
+}
+
+// A job source configured in the UI (/sources). Built into a VacancySource
+// at run time by backend/sources/configured.ts; code adapters in
+// backend/sources/index.ts don't have a row here.
+model SourceConfig {
+  id         String     @id @default(cuid())
+  kind       SourceKind
+  // A board slug (greenhouse/lever/ashby) or an https URL (rss/jsonld).
+  identifier String
+  label      String
+  enabled    Boolean    @default(true)
+
+  // Why this source may be read automatically, recorded by whoever added
+  // it: the terms page they checked and what it says. Required — the UI
+  // won't save a source without them.
+  termsUrl         String
+  termsNote        String
+  termsConfirmedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([kind, identifier])
 }

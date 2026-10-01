@@ -21,8 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AppNav />
         {/* pb-24 on mobile leaves room for the bottom tab bar */}
-        <div className="md:pl-56 min-h-screen">
-          <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8 pb-24 md:pb-8">{children}</main>
+        <div className="md:pl-56 print:!pl-0 min-h-screen">
+          <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8 pb-24 md:pb-8 print:p-0 print:max-w-none">{children}</main>
         </div>
       </body>
     </html>

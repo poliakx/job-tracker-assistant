@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { findSource, sources } from '@/backend/sources'
+import { findSource, getSources } from '@/backend/sources'
 import { PipelineRunError, runPipeline } from '@/backend/runPipeline'
+import { SCRAPING_DISABLED_ERROR, isScrapingEnabled } from '@/backend/scraping'
+import type { VacancySource } from '@/backend/sources/types'
 
 export const dynamic = 'force-dynamic'
 
 // GET — the sources the dashboard can search, for its per-source buttons.
+// Empty while automated collection is disabled.
 export async function GET() {
+  if (!isScrapingEnabled()) return NextResponse.json([])
+  const sources = await getSources()
   return NextResponse.json(sources.map(s => ({ name: s.name, label: s.label })))
 }
 
@@ -13,13 +18,18 @@ export async function GET() {
 // source given) all of them. Same code path as the scheduled cron run; the
 // daily analysis cap (ANALYSIS_DAILY_CAP) still bounds LLM cost.
 export async function POST(req: NextRequest) {
+  if (!isScrapingEnabled()) {
+    return NextResponse.json({ error: SCRAPING_DISABLED_ERROR }, { status: 403 })
+  }
   const body: unknown = await req.json().catch(() => ({}))
   const sourceName =
     body && typeof body === 'object' && 'source' in body && typeof body.source === 'string' ? body.source : undefined
 
-  let toRun = sources
-  if (sourceName !== undefined) {
-    const source = findSource(sourceName)
+  let toRun: VacancySource[]
+  if (sourceName === undefined) {
+    toRun = await getSources()
+  } else {
+    const source = await findSource(sourceName)
     if (!source) return NextResponse.json({ error: `unknown source: ${sourceName}` }, { status: 400 })
     toRun = [source]
   }

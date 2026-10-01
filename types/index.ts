@@ -73,6 +73,47 @@ export interface PipelineRun {
   tokenUsage?: Record<string, unknown>
 }
 
+// --- Job sources (/sources) --------------------------------------------
+
+// How a source is read — each one a format the site publishes *for*
+// automated reading: an official public API, a feed, or schema.org
+// structured data embedded for job aggregators.
+export type SourceAccess = 'official-api' | 'feed' | 'structured-data'
+
+// Why a source may be read automatically, recorded by whoever added it.
+export interface SourceLegal {
+  access: SourceAccess
+  // The terms / API documentation page that was checked.
+  termsUrl: string
+  // What that page says that allows automated access, in the adder's words.
+  termsNote: string
+  // ISO date the terms were last checked.
+  reviewedAt: string
+}
+
+// Kinds of source that can be added from /sources without code
+// (mirrors the SourceKind enum in prisma/schema.prisma).
+export type SourceKind = 'greenhouse' | 'lever' | 'ashby' | 'rss' | 'jsonld'
+
+// One row of GET /api/sources: a code adapter (id null, kind 'code') or a
+// source configured in the UI.
+export interface SourceInfo {
+  id: string | null
+  name: string
+  label: string
+  kind: SourceKind | 'code'
+  identifier: string | null
+  enabled: boolean
+  // Switched off by the DISABLED_SOURCES env var, regardless of `enabled`.
+  disabledByEnv: boolean
+  legal: SourceLegal
+}
+
+export interface SourcesResponse {
+  scrapingEnabled: boolean
+  sources: SourceInfo[]
+}
+
 // A job board the dashboard can search (GET /api/search).
 export interface SearchSource {
   name: string
@@ -94,6 +135,68 @@ export interface SearchSummary {
 // shape as the backend that stores and validates it. See backend/profile.ts
 // for the seed data and its zod schema.
 export type TargetRole = 'BACKEND' | 'FRONTEND' | 'FULLSTACK' | 'INTERNSHIP'
+
+// The kind of each piece of experience is stored explicitly so nothing
+// downstream (analysis, resume) can blur a personal project into
+// "commercial experience".
+export type WorkKind = 'COMMERCIAL' | 'INTERNSHIP' | 'FREELANCE' | 'VOLUNTEER'
+export type ProjectKind = 'PERSONAL' | 'TEAM' | 'ACADEMIC' | 'OPEN_SOURCE' | 'HACKATHON'
+
+export interface WorkEntry {
+  title: string
+  company: string
+  location: string
+  kind: WorkKind
+  // Free-form, as the candidate said it ("03.2024", "2023", "Present").
+  startDate: string
+  endDate: string
+  description: string
+  // Only concrete things the candidate actually described — never invented metrics.
+  achievements: string[]
+  tech: string[]
+}
+
+export interface ProjectEntry {
+  name: string
+  kind: ProjectKind
+  role: string
+  description: string
+  achievements: string[]
+  tech: string[]
+  url: string
+}
+
+export interface EducationEntry {
+  institution: string
+  degree: string
+  field: string
+  startDate: string
+  endDate: string
+  details: string
+}
+
+export interface CertificationEntry {
+  name: string
+  issuer: string
+  date: string
+}
+
+export interface LanguageLevel {
+  language: string
+  // CEFR (A1–C2) or "native"; as the candidate stated it.
+  level: string
+}
+
+// Filled in by hand on /profile, never by the LLM — exact values matter
+// here (a typo in an email is worse than no resume at all).
+export interface ContactInfo {
+  fullName: string
+  email: string
+  phone: string
+  linkedin: string
+  github: string
+  portfolio: string
+}
 
 export interface CandidateProfile {
   level: string
@@ -133,4 +236,115 @@ export interface CandidateProfile {
     // Still only ever a flag, never an auto-reject.
     conflictingStackKeywords: string[]
   }
+  // --- Resume-grade detail (added with the full interview). Old profile
+  // rows don't have these; CandidateProfileSchema defaults them to empty.
+  contact: ContactInfo
+  // e.g. "Junior Full-Stack Developer (Node.js / React)"
+  headline: string
+  // What the candidate says about themselves and what they're looking for,
+  // in their own words — raw material for the resume summary.
+  about: string
+  workExperience: WorkEntry[]
+  projects: ProjectEntry[]
+  education: EducationEntry[]
+  certifications: CertificationEntry[]
+  // Levels for `languages` above (which stays a plain list of names for
+  // backend/filter.ts).
+  languageLevels: LanguageLevel[]
+  workAuthorization: string
+  availability: string
+}
+
+// --- Resume -----------------------------------------------------------------
+// Text sections only. Contact details are rendered straight from
+// CandidateProfile.contact, never passed through the LLM.
+export interface ResumeContent {
+  headline: string
+  summary: string
+  skills: { category: string; items: string[] }[]
+  experience: { title: string; company: string; location: string; period: string; bullets: string[] }[]
+  projects: { name: string; url: string; tech: string[]; bullets: string[] }[]
+  education: { institution: string; degree: string; period: string; details: string }[]
+  certifications: string[]
+  languages: string[]
+}
+
+export interface Resume {
+  id: string
+  // null = the base resume; set = tailored to that vacancy.
+  vacancyId?: string
+  content: ResumeContent
+  // For a tailored resume: what was changed vs. the base, and why.
+  changes: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+// What GET/POST /api/resume and /api/vacancies/:id/resume return.
+export interface ResumeView {
+  resume: Resume | null
+  contact: ContactInfo
+  // Skills on the resume that the profile never mentions — see
+  // backend/resume.ts's findUnsupportedSkills. Shown as a warning.
+  unsupportedSkills: string[]
+  vacancy: { id: string; title: string; company: string } | null
+}
+
+// --- English assessment -------------------------------------------------------
+export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+export type QuizSkill = 'GRAMMAR' | 'VOCABULARY' | 'READING'
+
+export interface QuizQuestion {
+  id: string
+  level: CefrLevel
+  skill: QuizSkill
+  // Short text the question is about (READING only); '' otherwise.
+  passage: string
+  prompt: string
+  options: string[]
+  answerIndex: number
+  explanation: string
+}
+
+export interface WritingTask {
+  id: string
+  prompt: string
+  minWords: number
+  maxWords: number
+}
+
+export interface EnglishTest {
+  questions: QuizQuestion[]
+  writingTasks: WritingTask[]
+}
+
+export interface QuizScore {
+  correct: number
+  total: number
+  byLevel: Partial<Record<CefrLevel, { correct: number; total: number }>>
+  bySkill: Partial<Record<QuizSkill, { correct: number; total: number }>>
+}
+
+export interface EnglishAssessmentResult {
+  overall: CefrLevel
+  skills: {
+    grammar: CefrLevel
+    vocabulary: CefrLevel
+    reading: CefrLevel
+    writing: CefrLevel
+    interaction: CefrLevel
+  }
+  // Ukrainian, 2-4 sentences.
+  summary: string
+  strengths: string[]
+  mistakes: { original: string; correction: string; explanation: string }[]
+  recommendations: string[]
+}
+
+export interface EnglishAssessment {
+  id: string
+  overallLevel: CefrLevel
+  result: EnglishAssessmentResult
+  quizScore: QuizScore
+  createdAt: string
 }

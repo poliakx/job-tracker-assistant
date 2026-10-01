@@ -5,7 +5,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
 import { buildDeepSystemPrompt, buildTriageSystemPrompt, buildVacancyUserMessage } from './prompts/analyze'
 import { callTool, type ToolCallOutcome } from './llmTool'
-import type { CandidateProfile } from '@/types'
+import type { CandidateProfile, EnglishAssessmentResult } from '@/types'
 
 export const TriageResultSchema = z.object({
   worthDeepAnalysis: z.boolean(),
@@ -26,6 +26,21 @@ export const DeepAnalysisSchema = z.object({
   suggestedResume: z.enum(['FULLSTACK', 'BACKEND', 'FRONTEND']),
   suggestedResumeReason: z.string(),
   applyAdvice: z.string(),
+  // Added with manual vacancies: what to close to raise the match, and
+  // whether a tailored resume is worth generating. Defaulted so analyses
+  // stored before these existed still validate.
+  gaps: z
+    .array(
+      z.object({
+        requirement: z.string(),
+        type: z.enum(['NOT_IN_PROFILE', 'WEAK_EVIDENCE', 'EXPERIENCE', 'LANGUAGE', 'OTHER']),
+        importance: z.enum(['MUST_HAVE', 'NICE_TO_HAVE']),
+        action: z.string(),
+      })
+    )
+    .default([]),
+  tailoringRecommended: z.boolean().default(false),
+  tailoringReason: z.string().default(''),
 })
 export type DeepAnalysisResult = z.infer<typeof DeepAnalysisSchema>
 
@@ -65,8 +80,34 @@ const DEEP_INPUT_SCHEMA: Anthropic.Tool.InputSchema = {
     suggestedResume: { type: 'string', enum: ['FULLSTACK', 'BACKEND', 'FRONTEND'] },
     suggestedResumeReason: { type: 'string' },
     applyAdvice: { type: 'string' },
+    gaps: {
+      type: 'array',
+      description: 'What stands between the candidate and a strong match, most important first.',
+      items: {
+        type: 'object',
+        properties: {
+          requirement: { type: 'string', description: 'The vacancy requirement, in English.' },
+          type: {
+            type: 'string',
+            enum: ['NOT_IN_PROFILE', 'WEAK_EVIDENCE', 'EXPERIENCE', 'LANGUAGE', 'OTHER'],
+            description:
+              'NOT_IN_PROFILE: the profile never mentions it. WEAK_EVIDENCE: mentioned, but only thinly (a course, ' +
+              'no project shows it). EXPERIENCE: years/commercial bar. LANGUAGE: spoken-language requirement. ' +
+              'OTHER: location, work authorization, etc.',
+          },
+          importance: { type: 'string', enum: ['MUST_HAVE', 'NICE_TO_HAVE'] },
+          action: { type: 'string', description: 'One concrete next step, in Ukrainian.' },
+        },
+        required: ['requirement', 'type', 'importance', 'action'],
+      },
+    },
+    tailoringRecommended: { type: 'boolean' },
+    tailoringReason: { type: 'string', description: 'One sentence, in Ukrainian.' },
   },
   required: [
+    'gaps',
+    'tailoringRecommended',
+    'tailoringReason',
     'fitScore',
     'verdict',
     'summary',
@@ -97,11 +138,12 @@ function callVacancyTool<T>(params: {
 export async function triageVacancy(
   vacancy: VacancyForAnalysis,
   profile: CandidateProfile,
+  english: EnglishAssessmentResult | null = null,
   model: string = process.env.ANALYSIS_MODEL_TRIAGE ?? 'claude-haiku-4-5-20251001'
 ): Promise<AnalysisOutcome<TriageResult>> {
   return callVacancyTool({
     model,
-    systemPrompt: buildTriageSystemPrompt(profile),
+    systemPrompt: buildTriageSystemPrompt(profile, english),
     userMessage: buildVacancyUserMessage(vacancy),
     toolName: 'submit_triage',
     toolDescription: 'Submit the triage decision for this vacancy.',
@@ -114,16 +156,18 @@ export async function triageVacancy(
 export async function analyzeVacancyDeep(
   vacancy: VacancyForAnalysis,
   profile: CandidateProfile,
+  english: EnglishAssessmentResult | null = null,
   model: string = process.env.ANALYSIS_MODEL_DEEP ?? 'claude-sonnet-5'
 ): Promise<AnalysisOutcome<DeepAnalysisResult>> {
   return callVacancyTool({
     model,
-    systemPrompt: buildDeepSystemPrompt(profile),
+    systemPrompt: buildDeepSystemPrompt(profile, english),
     userMessage: buildVacancyUserMessage(vacancy),
     toolName: 'submit_analysis',
     toolDescription: 'Submit the completed vacancy analysis.',
     inputSchema: DEEP_INPUT_SCHEMA,
     schema: DeepAnalysisSchema,
-    maxTokens: 1500,
+    // gaps + tailoring on top of the original fields.
+    maxTokens: 3000,
   })
 }

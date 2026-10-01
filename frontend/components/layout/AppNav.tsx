@@ -4,11 +4,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Icon, { IconName } from '@/frontend/components/ui/Icon'
 
-const ITEMS: { href: string; label: string; icon: IconName }[] = [
+// desktopOnly: kept out of the mobile tab bar, which has room for six;
+// /sources is linked from the Vacancies page there instead.
+const ITEMS: { href: string; label: string; icon: IconName; desktopOnly?: boolean }[] = [
   { href: '/', label: 'Dashboard', icon: 'home' },
   { href: '/vacancies', label: 'Vacancies', icon: 'search' },
   { href: '/applications', label: 'Applications', icon: 'list' },
+  { href: '/resume', label: 'Resume', icon: 'file' },
+  { href: '/english', label: 'English', icon: 'globe' },
   { href: '/profile', label: 'Profile', icon: 'user' },
+  { href: '/sources', label: 'Sources', icon: 'rss', desktopOnly: true },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -22,14 +27,14 @@ export default function AppNav() {
 
   return (
     <>
-      <aside className="hidden md:flex fixed inset-y-0 left-0 w-56 flex-col border-r border-gray-200 bg-white">
+      <aside className="hidden md:flex print:!hidden fixed inset-y-0 left-0 w-56 flex-col border-r border-gray-200 bg-white">
         <div className="h-16 px-5 flex items-center gap-2.5 border-b border-gray-100">
           <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 text-white grid place-items-center text-sm font-semibold shadow-sm">
             JT
           </span>
           <div className="leading-tight">
             <div className="text-sm font-semibold text-gray-900">Job Tracker</div>
-            <div className="text-[11px] text-gray-500">Search &amp; applications</div>
+            <div className="text-[11px] text-gray-500">Profile, resume &amp; matches</div>
           </div>
         </div>
         <div className="px-5 pt-5 pb-2 text-[11px] font-medium uppercase tracking-wider text-gray-400">Menu</div>
@@ -56,15 +61,15 @@ export default function AppNav() {
         </nav>
       </aside>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white grid grid-cols-4">
-        {ITEMS.map(item => {
+      <nav className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white grid grid-cols-6">
+        {ITEMS.filter(item => !item.desktopOnly).map(item => {
           const active = isActive(pathname, item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
               className={
-                'flex flex-col items-center gap-0.5 py-2 text-xs no-underline hover:no-underline ' +
+                'flex flex-col items-center gap-0.5 py-2 text-[10px] no-underline hover:no-underline ' +
                 (active ? 'text-blue-800 font-medium' : 'text-gray-500')
               }
             >

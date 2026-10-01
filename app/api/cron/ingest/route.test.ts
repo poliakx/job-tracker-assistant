@@ -10,7 +10,7 @@ const runPipeline = vi.fn()
 const sources = [{ name: 'example', label: 'example.com' }]
 
 vi.mock('@/backend/runPipeline', () => ({ runPipeline, PipelineRunError }))
-vi.mock('@/backend/sources', () => ({ sources }))
+vi.mock('@/backend/sources', () => ({ getSources: async () => sources }))
 
 const { POST } = await import('./route')
 
@@ -22,6 +22,15 @@ describe('POST /api/cron/ingest', () => {
   beforeEach(() => {
     runPipeline.mockReset()
     delete process.env.CRON_SECRET
+    process.env.SCRAPING_ENABLED = 'true'
+  })
+
+  it('returns 403 and runs nothing while scraping is disabled, even with the right secret', async () => {
+    process.env.CRON_SECRET = 'right-secret'
+    delete process.env.SCRAPING_ENABLED
+    const res = await POST(makeRequest({ authorization: 'Bearer right-secret' }))
+    expect(res.status).toBe(403)
+    expect(runPipeline).not.toHaveBeenCalled()
   })
 
   it('returns 401 when CRON_SECRET is not configured on the server', async () => {

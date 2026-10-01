@@ -12,8 +12,8 @@ const sourceB = { name: 'b', label: 'B' }
 
 vi.mock('@/backend/runPipeline', () => ({ runPipeline, PipelineRunError }))
 vi.mock('@/backend/sources', () => ({
-  sources: [sourceA, sourceB],
-  findSource: (name: string) => [sourceA, sourceB].find(s => s.name === name),
+  getSources: async () => [sourceA, sourceB],
+  findSource: async (name: string) => [sourceA, sourceB].find(s => s.name === name),
 }))
 
 const { GET, POST } = await import('./route')
@@ -27,10 +27,29 @@ function makeRequest(body?: unknown) {
 
 const summary = { runId: 'run-1', fetched: 5, newCount: 2, analyzed: 1, errors: 0 }
 
+describe('/api/search while scraping is disabled', () => {
+  beforeEach(() => {
+    runPipeline.mockReset()
+    delete process.env.SCRAPING_ENABLED
+  })
+
+  it('GET lists no sources', async () => {
+    const res = await GET()
+    expect(await res.json()).toEqual([])
+  })
+
+  it('POST returns 403 and runs nothing', async () => {
+    const res = await POST(makeRequest())
+    expect(res.status).toBe(403)
+    expect(runPipeline).not.toHaveBeenCalled()
+  })
+})
+
 describe('/api/search', () => {
   beforeEach(() => {
     runPipeline.mockReset()
     runPipeline.mockResolvedValue(summary)
+    process.env.SCRAPING_ENABLED = 'true'
   })
 
   it('GET lists the searchable sources', async () => {

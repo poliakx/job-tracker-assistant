@@ -11,8 +11,9 @@ vi.mock('./pipeline', () => ({ runIngest, runFilter, runAnalyze }))
 
 const { runPipeline, PipelineRunError } = await import('./runPipeline')
 
-const sourceA = { name: 'a', label: 'A', fetchRecent: vi.fn() }
-const sourceB = { name: 'b', label: 'B', fetchRecent: vi.fn() }
+const legal = { access: 'official-api' as const, termsUrl: 'https://example.com/terms', termsNote: 'test', reviewedAt: '2026-01-01' }
+const sourceA = { name: 'a', label: 'A', legal, fetchRecent: vi.fn() }
+const sourceB = { name: 'b', label: 'B', legal, fetchRecent: vi.fn() }
 const emptyUsage = { triageInputTokens: 0, triageOutputTokens: 0, deepInputTokens: 0, deepOutputTokens: 0 }
 
 describe('runPipeline', () => {

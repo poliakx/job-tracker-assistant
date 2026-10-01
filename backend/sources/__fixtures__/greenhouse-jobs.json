@@ -1,0 +1,22 @@
+{
+  "jobs": [
+    {
+      "id": 4012345,
+      "title": "Junior Backend Engineer ",
+      "absolute_url": "https://job-boards.greenhouse.io/examplecorp/jobs/4012345",
+      "location": { "name": "Remote - Europe" },
+      "updated_at": "2026-09-20T09:15:00-04:00",
+      "first_published": "2026-09-18T08:00:00-04:00",
+      "company_name": "Example Corp",
+      "content": "&lt;p&gt;We build &lt;strong&gt;made-up&lt;/strong&gt; tools.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Node.js&lt;/li&gt;&lt;li&gt;PostgreSQL&lt;/li&gt;&lt;/ul&gt;"
+    },
+    {
+      "id": 4012346,
+      "title": "Frontend Developer",
+      "absolute_url": "https://job-boards.greenhouse.io/examplecorp/jobs/4012346",
+      "location": { "name": "Warsaw, Poland" },
+      "updated_at": "2026-09-25T12:00:00Z",
+      "content": null
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "5a1b2c3d-0000-4000-8000-000000000001",
+    "text": "Junior Full-Stack Developer",
+    "hostedUrl": "https://jobs.lever.co/examplecorp/5a1b2c3d-0000-4000-8000-000000000001",
+    "createdAt": 1790000000000,
+    "workplaceType": "hybrid",
+    "categories": { "location": "Kraków", "allLocations": ["Kraków", "Wrocław"], "team": "Engineering" },
+    "descriptionPlain": "A fictional team building fictional things.",
+    "lists": [{ "text": "Requirements", "content": "<li>TypeScript</li><li>React</li>" }],
+    "additionalPlain": "Made-up benefits."
+  },
+  {
+    "id": "5a1b2c3d-0000-4000-8000-000000000002",
+    "text": "Backend Intern",
+    "hostedUrl": "https://jobs.lever.co/examplecorp/5a1b2c3d-0000-4000-8000-000000000002",
+    "workplaceType": "remote",
+    "categories": { "location": null }
+  }
+]

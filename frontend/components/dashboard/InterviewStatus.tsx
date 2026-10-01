@@ -7,19 +7,28 @@ import { loadInterviewDraft, type InterviewDraft } from '@/frontend/helpers/stor
 // `undefined` means "not checked yet" and avoids a hydration mismatch.
 export default function InterviewStatus() {
   const [draft, setDraft] = useState<InterviewDraft | null | undefined>(undefined)
+  const [hasProfile, setHasProfile] = useState(false)
 
   useEffect(() => {
     setDraft(loadInterviewDraft())
+    fetch('/api/profile')
+      .then(res => (res.ok ? res.json() : { profile: null }))
+      .then(body => setHasProfile(!!body.profile))
+      .catch(() => setHasProfile(false))
   }, [])
 
   const answers = draft?.messages.filter(m => m.role === 'user').length ?? 0
   const inReview = draft?.phase === 'review' || draft?.phase === 'extracting'
   const inProgress = !!draft && draft.messages.length > 0
 
-  let text = 'A short AI interview builds the profile that search filtering and fit scores rely on.'
+  let text = 'An AI interview builds the profile your resume and every match score are based on.'
   let action = 'Start interview'
   let dot = 'bg-gray-300'
-  if (inReview) {
+  if (hasProfile && !inProgress) {
+    text = 'Profile saved. Add new jobs, projects or skills with a follow-up interview.'
+    action = 'Open profile'
+    dot = 'bg-green-600'
+  } else if (inReview) {
     text = 'Interview finished — review the generated profile and save it.'
     action = 'Review profile'
     dot = 'bg-amber-500'

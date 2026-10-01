@@ -109,6 +109,25 @@ describe('extractProfile', () => {
     }
   })
 
+  it('in update mode, sends the saved profile without contact details and keeps the saved contact', async () => {
+    const contact = { fullName: 'Jan Kowalski', email: 'jan@example.com', phone: '+48 600', linkedin: '', github: '', portfolio: '' }
+    const { candidateProfile } = await import('../profile')
+    const existing = { ...candidateProfile, contact }
+    // Even if the model returned something for contact, the saved one wins.
+    createMock.mockResolvedValueOnce(
+      messageResponse('submit_profile', { ...validProfile, contact: { ...contact, email: 'wrong@example.com' } })
+    )
+
+    const outcome = await extractProfile([{ role: 'user', content: 'I started a new job.' }], existing)
+
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect(outcome.result.contact).toEqual(contact)
+    const system: string = createMock.mock.calls[0][0].system
+    expect(system).toContain('Saved profile:')
+    expect(system).not.toContain('jan@example.com')
+    expect(system).not.toContain('+48 600')
+  })
+
   it('rejects a profile with an invalid targetRoles value', async () => {
     createMock.mockResolvedValue(messageResponse('submit_profile', { ...validProfile, targetRoles: ['NOT_A_REAL_ROLE'] }))
 

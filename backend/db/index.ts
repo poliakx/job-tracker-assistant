@@ -1,8 +1,18 @@
-import { ApplicationSource, Prisma } from '@prisma/client'
+import { ApplicationSource, Prisma, SourceKind } from '@prisma/client'
 import prisma from './prisma'
 import { candidateProfile, CandidateProfileSchema } from '../profile'
 import { buildPromotionNotes } from '../helpers/promotionNotes'
-import type { CandidateProfile, JobApplication, PipelineRun, Vacancy, VacancyStatus } from '@/types'
+import { EnglishAssessmentResultSchema } from '../english'
+import type {
+  CandidateProfile,
+  EnglishAssessmentResult,
+  JobApplication,
+  PipelineRun,
+  QuizScore,
+  ResumeContent,
+  Vacancy,
+  VacancyStatus,
+} from '@/types'
 
 export async function getApplications() {
   return await prisma.jobApplication.findMany({ orderBy: { appliedDate: 'desc' } })
@@ -229,12 +239,69 @@ export async function getActiveProfile(): Promise<CandidateProfile> {
   return parsed.data
 }
 
+// Unlike getActiveProfile, no seed fallback: null means the owner hasn't
+// saved a profile yet (so /profile starts a fresh interview instead of
+// offering to "update" the illustrative seed).
+export async function getSavedProfile(): Promise<CandidateProfile | null> {
+  const row = await prisma.profile.findUnique({ where: { id: PROFILE_ID } })
+  if (!row) return null
+  const parsed = CandidateProfileSchema.safeParse(row.data)
+  return parsed.success ? parsed.data : null
+}
+
 export async function saveProfile(profile: CandidateProfile) {
   const data = profile as unknown as Prisma.InputJsonValue
   return await prisma.profile.upsert({
     where: { id: PROFILE_ID },
     create: { id: PROFILE_ID, data },
     update: { data },
+  })
+}
+
+// --- Resume ----------------------------------------------------------------
+// vacancyId null = the base resume. Postgres allows many NULLs in a unique
+// column, so the base resume is found/updated by hand rather than upserted.
+
+export async function getResume(vacancyId: string | null) {
+  return await prisma.resume.findFirst({ where: { vacancyId }, orderBy: { updatedAt: 'desc' } })
+}
+
+export async function saveResume(vacancyId: string | null, content: ResumeContent, changes: string[]) {
+  const data = { content: content as unknown as Prisma.InputJsonValue, changes: changes as Prisma.InputJsonValue }
+  if (vacancyId) {
+    return await prisma.resume.upsert({ where: { vacancyId }, create: { vacancyId, ...data }, update: data })
+  }
+  const existing = await getResume(null)
+  if (existing) return await prisma.resume.update({ where: { id: existing.id }, data })
+  return await prisma.resume.create({ data })
+}
+
+// --- EnglishAssessment -------------------------------------------------------
+
+export async function getLatestEnglishAssessment() {
+  return await prisma.englishAssessment.findFirst({ orderBy: { createdAt: 'desc' } })
+}
+
+// The latest assessment's result, validated — for prompts that need it.
+// null if there's no assessment yet (or it's somehow malformed).
+export async function getLatestEnglishResult(): Promise<EnglishAssessmentResult | null> {
+  const row = await getLatestEnglishAssessment()
+  if (!row) return null
+  const parsed = EnglishAssessmentResultSchema.safeParse(row.result)
+  return parsed.success ? parsed.data : null
+}
+
+export async function getEnglishAssessments(limit = 10) {
+  return await prisma.englishAssessment.findMany({ orderBy: { createdAt: 'desc' }, take: limit })
+}
+
+export async function createEnglishAssessment(result: EnglishAssessmentResult, quizScore: QuizScore) {
+  return await prisma.englishAssessment.create({
+    data: {
+      overallLevel: result.overall,
+      result: result as unknown as Prisma.InputJsonValue,
+      quizScore: quizScore as unknown as Prisma.InputJsonValue,
+    },
   })
 }
 
@@ -267,4 +334,34 @@ export async function finishPipelineRun(
 
 export async function getLatestPipelineRun() {
   return await prisma.pipelineRun.findFirst({ orderBy: { startedAt: 'desc' } })
+}
+
+// --- SourceConfig ----------------------------------------------------------
+// Job sources added from /sources. backend/sources/index.ts turns the
+// enabled ones into VacancySources next to the code adapters.
+
+export async function getSourceConfigs() {
+  return await prisma.sourceConfig.findMany({ orderBy: { createdAt: 'asc' } })
+}
+
+export async function getEnabledSourceConfigs() {
+  return await prisma.sourceConfig.findMany({ where: { enabled: true }, orderBy: { createdAt: 'asc' } })
+}
+
+export async function findSourceConfig(kind: SourceKind, identifier: string) {
+  return await prisma.sourceConfig.findUnique({ where: { kind_identifier: { kind, identifier } } })
+}
+
+export async function createSourceConfig(data: { kind: SourceKind; identifier: string; label: string; termsUrl: string; termsNote: string }) {
+  return await prisma.sourceConfig.create({ data: { ...data, termsConfirmedAt: new Date() } })
+}
+
+export async function setSourceConfigEnabled(id: string, enabled: boolean) {
+  return await prisma.sourceConfig.update({ where: { id }, data: { enabled } })
+}
+
+// Vacancies already ingested from the source stay: they're the owner's data
+// now, and may have been shortlisted or applied to.
+export async function deleteSourceConfig(id: string) {
+  return await prisma.sourceConfig.delete({ where: { id } })
 }

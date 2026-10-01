@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { PipelineRun, Vacancy } from '@/types'
 
-// Separate from useApplications on purpose (per PLAN.md): vacancies are
-// pipeline-generated, not something the owner adds by hand, so there's no
-// localStorage fallback here the way there is for applications — if the
-// API is unreachable, that's a real error to show, not something to paper
-// over with local state that would just be empty anyway.
+// Separate from useApplications on purpose (per PLAN.md). No localStorage
+// fallback here the way there is for applications: a vacancy is only
+// useful with its server-side analysis, so if the API is unreachable
+// that's a real error to show, not something to paper over.
+
 export function useVacancies() {
   const [vacancies, setVacancies] = useState<Vacancy[]>([])
   const [lastRun, setLastRun] = useState<PipelineRun | null>(null)
@@ -61,5 +61,28 @@ export function useVacancies() {
     return body
   }
 
-  return { vacancies, lastRun, loading, error, shortlist, dismiss, promote, refresh: load }
+  // Adds a vacancy from its pasted text (the server pulls out title,
+  // company etc.). Doesn't analyze it — call analyze() next, so the card
+  // shows up right away and the (slow) analysis runs visibly on it.
+  async function create(text: string): Promise<Vacancy> {
+    const res = await fetch('/api/vacancies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.details || body.error || 'failed to add vacancy')
+    setVacancies(prev => [body, ...prev])
+    return body
+  }
+
+  async function analyze(id: string): Promise<Vacancy> {
+    const res = await fetch(`/api/vacancies/${id}/analyze`, { method: 'POST' })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.error || 'failed to analyze vacancy')
+    setVacancies(prev => prev.map(v => (v.id === id ? body : v)))
+    return body
+  }
+
+  return { vacancies, lastRun, loading, error, shortlist, dismiss, promote, create, analyze, refresh: load }
 }

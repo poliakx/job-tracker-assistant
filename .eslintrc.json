@@ -1,6 +1,8 @@
 {
   "extends": "next/core-web-vitals",
-  "plugins": ["import"],
+  "plugins": [
+    "import"
+  ],
   "settings": {
     "import/resolver": {
       "typescript": {
@@ -16,12 +18,12 @@
           {
             "target": "./frontend",
             "from": "./backend",
-            "message": "frontend/ must not import backend/ — server-only code (Prisma, API keys, LLM calls) would leak into the client bundle. Fetch from an API route instead."
+            "message": "frontend/ must not import backend/ \u2014 server-only code (Prisma, API keys, LLM calls) would leak into the client bundle. Fetch from an API route instead."
           },
           {
             "target": "./backend",
             "from": "./frontend",
-            "message": "backend/ must not import frontend/ — backend code has no business depending on React/UI code."
+            "message": "backend/ must not import frontend/ \u2014 backend code has no business depending on React/UI code."
           }
         ]
       }
@@ -29,17 +31,41 @@
   },
   "overrides": [
     {
-      "files": ["app/**/page.tsx", "app/layout.tsx"],
+      "files": [
+        "app/**/page.tsx",
+        "app/layout.tsx"
+      ],
       "rules": {
         "no-restricted-imports": [
           "error",
           {
             "patterns": [
               {
-                "group": ["@/backend", "@/backend/*"],
-                "message": "Pages/layouts in this project are client components — import backend/ only inside app/api/**/route.ts, never directly from a page."
+                "group": [
+                  "@/backend",
+                  "@/backend/*"
+                ],
+                "message": "Pages/layouts in this project are client components \u2014 import backend/ only inside app/api/**/route.ts, never directly from a page."
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "backend/sources/**/*.ts"
+      ],
+      "excludedFiles": [
+        "backend/sources/http.ts",
+        "backend/sources/**/*.test.ts"
+      ],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "fetch",
+            "message": "Job sources must make every request through createPoliteClient (backend/sources/http.ts), which enforces robots.txt, an honest User-Agent and rate limits."
           }
         ]
       }

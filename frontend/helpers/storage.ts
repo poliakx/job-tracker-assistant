@@ -1,4 +1,4 @@
-import { JobApplication } from '@/types'
+import { EnglishTest, JobApplication } from '@/types'
 
 const KEY = 'applications_v1'
 
@@ -36,6 +36,8 @@ export interface InterviewDraft {
   // profile was built — the page re-runs extraction on restore.
   phase: 'chat' | 'extracting' | 'review'
   profileJson: string
+  // 'update' = a follow-up interview against the saved profile.
+  mode: 'new' | 'update'
 }
 
 function isMessage(m: unknown): m is InterviewMessage {
@@ -54,6 +56,7 @@ export function loadInterviewDraft(): InterviewDraft | null {
       messages: data.messages,
       phase: data.phase === 'review' || data.phase === 'extracting' ? data.phase : 'chat',
       profileJson: typeof data.profileJson === 'string' ? data.profileJson : '',
+      mode: data.mode === 'update' ? 'update' : 'new',
     }
   } catch (e) {
     console.error('loadInterviewDraft error', e)
@@ -74,5 +77,51 @@ export function clearInterviewDraft() {
     localStorage.removeItem(INTERVIEW_KEY)
   } catch (e) {
     console.error('clearInterviewDraft error', e)
+  }
+}
+
+// --- English test draft -------------------------------------------------------
+// Same idea as the interview draft: a generated test plus everything typed
+// so far survives a reload until the result is saved.
+
+const ENGLISH_KEY = 'english_test_v1'
+
+export interface EnglishDraft {
+  stage: 'quiz' | 'writing' | 'chat'
+  test: EnglishTest
+  answers: (number | null)[]
+  writing: string[]
+  chat: InterviewMessage[]
+  chatDone: boolean
+}
+
+export function loadEnglishDraft(): EnglishDraft | null {
+  try {
+    const raw = localStorage.getItem(ENGLISH_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw) as Partial<EnglishDraft>
+    if (!data.test || !Array.isArray(data.test.questions) || !Array.isArray(data.answers)) return null
+    if (!Array.isArray(data.writing) || !Array.isArray(data.chat) || !data.chat.every(isMessage)) return null
+    const stage = data.stage === 'writing' || data.stage === 'chat' ? data.stage : 'quiz'
+    return { stage, test: data.test, answers: data.answers, writing: data.writing, chat: data.chat, chatDone: !!data.chatDone }
+  } catch (e) {
+    console.error('loadEnglishDraft error', e)
+    return null
+  }
+}
+
+export function saveEnglishDraft(draft: EnglishDraft) {
+  try {
+    localStorage.setItem(ENGLISH_KEY, JSON.stringify(draft))
+  } catch (e) {
+    console.error('saveEnglishDraft error', e)
+  }
+}
+
+export function clearEnglishDraft() {
+  try {
+    localStorage.removeItem(ENGLISH_KEY)
+  } catch (e) {
+    console.error('clearEnglishDraft error', e)
   }
 }

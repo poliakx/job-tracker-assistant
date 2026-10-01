@@ -14,6 +14,15 @@ export interface DeepAnalysisView {
   redFlags: string[]
   suggestedResumeReason?: string
   applyAdvice?: string
+  // Absent on analyses stored before these fields existed.
+  gaps?: {
+    requirement: string
+    type: 'NOT_IN_PROFILE' | 'WEAK_EVIDENCE' | 'EXPERIENCE' | 'LANGUAGE' | 'OTHER'
+    importance: 'MUST_HAVE' | 'NICE_TO_HAVE'
+    action: string
+  }[]
+  tailoringRecommended?: boolean
+  tailoringReason?: string
 }
 
 export function asDeepAnalysis(analysis: Vacancy['analysis']): DeepAnalysisView | null {

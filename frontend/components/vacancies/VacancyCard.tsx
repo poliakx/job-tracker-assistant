@@ -1,7 +1,8 @@
 "use client"
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { Vacancy } from '@/types'
-import { asDeepAnalysis, asTriageOnlyReason } from '@/frontend/helpers/vacancyAnalysis'
+import { asDeepAnalysis, asTriageOnlyReason, type DeepAnalysisView } from '@/frontend/helpers/vacancyAnalysis'
 import { timeAgo } from '@/frontend/helpers/timeAgo'
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -42,21 +43,69 @@ function SkillChips({ label, skills, tone }: { label: string; skills: string[]; 
   )
 }
 
+const GAP_TYPE_LABEL: Record<string, string> = {
+  NOT_IN_PROFILE: 'not in your profile',
+  WEAK_EVIDENCE: 'weak evidence',
+  EXPERIENCE: 'experience',
+  LANGUAGE: 'language',
+  OTHER: 'other',
+}
+
+// What to close to raise the match — the "what should I do" half of the
+// analysis, so it gets more room than the chip lists.
+function Gaps({ gaps }: { gaps: NonNullable<DeepAnalysisView['gaps']> }) {
+  if (gaps.length === 0) return null
+  return (
+    <div className="mt-4">
+      <div className="text-xs font-medium text-gray-500 mb-1.5">To raise the match</div>
+      <ul className="space-y-2">
+        {gaps.map((g, i) => (
+          <li key={i} className="text-sm rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-medium text-gray-900">{g.requirement}</span>
+              <span
+                className={
+                  'px-1.5 py-0.5 rounded text-[11px] ' +
+                  (g.importance === 'MUST_HAVE' ? 'bg-red-50 text-red-800' : 'bg-gray-100 text-gray-600')
+                }
+              >
+                {g.importance === 'MUST_HAVE' ? 'must-have' : 'nice to have'}
+              </span>
+              <span className="text-[11px] text-gray-400">{GAP_TYPE_LABEL[g.type] ?? g.type}</span>
+            </div>
+            <p className="text-gray-700 mt-0.5">{g.action}</p>
+          </li>
+        ))}
+      </ul>
+      {gaps.some(g => g.type === 'NOT_IN_PROFILE') && (
+        <p className="text-xs text-gray-500 mt-2">
+          Already have some of these? <Link href="/profile">Add them to your profile</Link> with a follow-up interview,
+          then re-analyze.
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function VacancyCard({
   vacancy,
   fresh,
+  analyzing,
   onShortlist,
   onDismiss,
   onPromote,
+  onAnalyze,
 }: {
   vacancy: Vacancy
   // Found by the most recent search — marked with a dot.
   fresh: boolean
+  analyzing: boolean
   onShortlist: (v: Vacancy) => void
   onDismiss: (v: Vacancy) => void
   onPromote: (v: Vacancy) => void
+  onAnalyze: (v: Vacancy) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(analyzing)
   const deep = asDeepAnalysis(vacancy.analysis)
   const triageReason = asTriageOnlyReason(vacancy.analysis)
   const dismissedWhy = vacancy.status === 'DISMISSED' ? vacancy.filterReasons?.[0] ?? triageReason : null
@@ -69,7 +118,13 @@ export default function VacancyCard({
         aria-expanded={open}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
       >
-        <ScoreChip verdict={deep?.verdict} fitScore={vacancy.fitScore} />
+        {analyzing ? (
+          <span className="w-11 h-11 shrink-0 rounded-lg ring-1 ring-gray-200 grid place-items-center">
+            <span className="w-4 h-4 border-2 border-blue-600 border-r-transparent rounded-full animate-spin" />
+          </span>
+        ) : (
+          <ScoreChip verdict={deep?.verdict} fitScore={vacancy.fitScore} />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {fresh && <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" title="Found in the latest search" />}
@@ -92,7 +147,8 @@ export default function VacancyCard({
         <div className="px-4 pb-4 sm:pl-[4.75rem]">
           {deep && <p className="text-sm text-gray-800">{deep.summary}</p>}
           {!deep && triageReason && <p className="text-sm text-gray-500 italic">Triaged out: {triageReason}</p>}
-          {!deep && !triageReason && <p className="text-sm text-gray-400 italic">Not analyzed yet.</p>}
+          {analyzing && <p className="text-sm text-gray-500 italic">Analyzing the match against your profile… (about 20 seconds)</p>}
+          {!analyzing && !deep && !triageReason && <p className="text-sm text-gray-400 italic">Not analyzed yet.</p>}
           {dismissedWhy && !deep && <p className="text-xs text-gray-500 mt-2">Why dismissed: {dismissedWhy}</p>}
 
           {deep && (
@@ -111,14 +167,39 @@ export default function VacancyCard({
                   <span className="font-medium">Advice:</span> {deep.applyAdvice}
                 </p>
               )}
+              <Gaps gaps={deep.gaps ?? []} />
+              {deep.tailoringReason && (
+                <p className="text-xs text-gray-600 mt-3">
+                  <span className="font-medium">Tailored resume:</span>{' '}
+                  {deep.tailoringRecommended ? 'recommended' : 'not needed'} — {deep.tailoringReason}
+                </p>
+              )}
             </>
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href={`/resume/${vacancy.id}`}
+              className={
+                'text-sm px-3 py-1.5 rounded-lg hover:no-underline ' +
+                (deep?.tailoringRecommended
+                  ? 'bg-blue-700 text-white hover:bg-blue-800'
+                  : 'border border-gray-200 text-gray-800 hover:bg-gray-50')
+              }
+            >
+              Tailored resume
+            </Link>
+            <button
+              onClick={() => onAnalyze(vacancy)}
+              disabled={analyzing}
+              className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {deep ? 'Re-analyze' : 'Analyze match'}
+            </button>
             {vacancy.status !== 'APPLIED' && (
               <button
                 onClick={() => onPromote(vacancy)}
-                className="text-sm px-3 py-1.5 rounded-lg bg-blue-700 text-white hover:bg-blue-800"
+                className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
               >
                 Add to applications
               </button>
@@ -133,14 +214,16 @@ export default function VacancyCard({
                 Dismiss
               </button>
             )}
-            <a
-              href={vacancy.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50"
-            >
-              Open posting ↗
-            </a>
+            {vacancy.url && (
+              <a
+                href={vacancy.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50"
+              >
+                Open posting ↗
+              </a>
+            )}
           </div>
         </div>
       )}

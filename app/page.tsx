@@ -3,25 +3,21 @@ import React, { useMemo } from 'react'
 import Link from 'next/link'
 import { useApplications } from '@/frontend/hooks/useApplications'
 import { useVacancies } from '@/frontend/hooks/useVacancies'
-import { useSearch } from '@/frontend/hooks/useSearch'
-import { timeAgo } from '@/frontend/helpers/timeAgo'
 import Icon from '@/frontend/components/ui/Icon'
 import Panel, { StatTile } from '@/frontend/components/dashboard/Panel'
 import PipelineChart from '@/frontend/components/dashboard/PipelineChart'
 import RecentApplications from '@/frontend/components/dashboard/RecentApplications'
 import TopMatches from '@/frontend/components/dashboard/TopMatches'
-import SearchStatus from '@/frontend/components/dashboard/SearchStatus'
 import InterviewStatus from '@/frontend/components/dashboard/InterviewStatus'
+import { EnglishStatus, ResumeStatus } from '@/frontend/components/dashboard/ToolStatus'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 // Dashboard: KPIs up top, the application pipeline on the left, and the
-// three things to act on next (matches, search, profile) on the right.
+// things to act on next (matches, profile, resume, English) on the right.
 export default function DashboardPage() {
   const { applications, stats } = useApplications()
-  const { vacancies, lastRun, loading, error, refresh } = useVacancies()
-  const search = useSearch({ onFinished: refresh })
-  const searching = search.running !== null
+  const { vacancies, loading, error } = useVacancies()
 
   const { byStatus, total } = stats
   const active = byStatus.applied + byStatus.interview + byStatus.technical_task
@@ -57,18 +53,13 @@ export default function DashboardPage() {
           >
             Add application
           </Link>
-          <button
-            onClick={() => search.run('all')}
-            disabled={searching}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-700 text-sm font-medium text-white shadow-sm hover:bg-blue-800 disabled:opacity-60"
+          <Link
+            href="/vacancies"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-700 text-sm font-medium text-white shadow-sm hover:bg-blue-800 hover:no-underline"
           >
-            {searching ? (
-              <span className="w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin" />
-            ) : (
-              <Icon name="search" className="w-4 h-4" />
-            )}
-            {searching ? 'Searching…' : 'Run search'}
-          </button>
+            <Icon name="plus" className="w-4 h-4" />
+            Check a vacancy
+          </Link>
         </div>
       </div>
 
@@ -83,7 +74,7 @@ export default function DashboardPage() {
         <StatTile
           label="To review"
           value={loading ? '—' : toReview}
-          hint={lastRun ? `Last search ${timeAgo(lastRun.finishedAt ?? lastRun.startedAt)}` : 'No searches yet'}
+          hint="Vacancies not yet shortlisted or dismissed"
         />
       </div>
 
@@ -101,18 +92,14 @@ export default function DashboardPage() {
           <Panel title="Top matches" description="Highest fit scores awaiting a decision" href="/vacancies" linkLabel="Review">
             <TopMatches vacancies={topMatches} />
           </Panel>
-          <Panel title="Vacancy search" href="/vacancies" linkLabel="Open">
-            <SearchStatus
-              lastRun={lastRun}
-              sources={search.sources}
-              running={search.running}
-              result={search.result}
-              error={search.error}
-              onRun={search.run}
-            />
-          </Panel>
           <Panel title="Profile interview" href="/profile" linkLabel="Open">
             <InterviewStatus />
+          </Panel>
+          <Panel title="Resume" href="/resume" linkLabel="Open">
+            <ResumeStatus />
+          </Panel>
+          <Panel title="English level" href="/english" linkLabel="Open">
+            <EnglishStatus />
           </Panel>
         </div>
       </div>

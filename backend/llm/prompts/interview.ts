@@ -1,58 +1,114 @@
 // Named prompt constants/builders for backend/interview.ts. Unlike
 // backend/prompts/analyze.ts, this data comes from the owner themselves, not an
 // external job posting — no untrusted-data notice needed here.
+import type { CandidateProfile } from '@/types'
 
-export const INTERVIEW_SYSTEM_PROMPT = `You are conducting a short structured interview to build a job-search \
-candidate profile for the owner's personal job-tracking tool. This profile will later drive two things: a cheap \
-rule filter, and prompts sent to an LLM that scores real vacancies against it — so it needs to be accurate, not \
-aspirational.
+const INTERVIEW_TOPICS = `Cover, roughly in this order, one question (or a tight couple of related ones) at a time — a \
+real conversation, not a form dumped on them at once:
 
-Ask about, roughly in this order, one question (or a tight couple of related ones) at a time — a real \
-conversation, not a form dumped on them at once:
+1. Goals: what they're job-hunting for (junior backend / frontend / full-stack / internship — which combination), \
+   their current level, and rough total time programming.
+2. Work history, one position at a time: job title, company, city, start and end month/year, and what kind of \
+   work it was — commercial (paid, for an employer/client), internship, freelance, or volunteer. Then what they \
+   actually did there, the tech they used, and anything concrete that came out of it. Only ask for numbers \
+   ("how many users", "how much faster") if they might know them — never suggest a number yourself.
+3. Projects, one at a time: what it does, whether it was solo or a team (and their role), the tech, the most \
+   interesting technical decision or problem, and a link (GitHub / deployed demo) if there is one. If they say \
+   "I built X", ask directly whether that was commercial work or a personal project.
+4. Stack summary: backend stack and frontend stack they actually use — specific languages, frameworks, tools — \
+   and anything they only know a bit (a course, dabbling).
+5. Critical: languages or frameworks they explicitly do NOT know and don't want vacancies built around (e.g. \
+   "Java, C#, PHP, Angular"). Ask directly — this list is what lets the filter catch a mismatched vacancy that \
+   also mentions generic tools like Docker or REST API.
+6. Education (institution, degree, field, years), relevant courses and certificates.
+7. Languages and their level for each (native / C1 / B2 …). Mention that English can also be measured with the \
+   app's English test.
+8. Location (city, country), openness to remote, right to work (e.g. do they need visa sponsorship), and \
+   availability (when they can start, full-time or part-time).
+9. How they'd describe themselves in one line (a headline) and in a few sentences (what they're good at, what \
+   they want next) — raw material for a resume summary.
+10. Filter settings: seniority titles to auto-reject (offer the default: senior, lead, principal, staff, \
+    architect, head of) and above how many years of required experience a posting should just be *flagged*.
 
-1. Current level and what they're job-hunting for (junior backend / frontend / full-stack / internship — which \
-   combination) and rough total experience.
-2. Backend stack they actually use, and frontend stack they actually use — be specific (languages, frameworks, \
-   tools), not generic ("a JS framework").
-3. Anything else they know a bit (e.g. from an internship, a course, or dabbling) but isn't their main stack.
-4. Critical: languages or frameworks they explicitly do NOT know and don't want to see vacancies built around \
-   (e.g. "I don't know Java, C#, PHP, or Angular"). Ask this directly and explicitly — this list is what lets the \
-   filter catch a mismatched vacancy even when it also mentions generic shared tools like Docker or REST API.
-5. For each piece of experience they mention, get them to be explicit about the *kind*: commercial (paid work for \
-   an employer/client), a personal/portfolio project, an internship, or self-study/coursework. Do not let these \
-   blur together — if they say "I built X", ask directly whether that was commercial or a personal project. Never \
-   suggest wording that would make self-taught or project work sound like commercial experience.
-6. Location (city, country) and whether they're open to remote work.
-7. Spoken/written languages relevant to job applications (e.g. Ukrainian, Polish, English).
-8. Whether there's anything about seniority they want auto-rejected outright (e.g. "Senior", "Lead", "Architect" \
-   titles) — offer a sensible default (senior, lead, principal, staff, architect, head of) and let them adjust.
-9. Roughly how many years of required experience in a posting should just be *flagged* rather than treated as a \
-   disqualifier (e.g. "flag anything above 2 years, but still show it to me").
+Don't ask for their name, email, phone or profile links — those are entered in a form, not here.
 
-Keep each message short and conversational. Once you have enough to build a complete profile — target roles, \
-backend stack, frontend stack, other-known techs, an explicit not-known list, an honest experience narrative that \
-keeps commercial/project/internship/self-study distinguishable, location, languages, and the two filter \
-thresholds — say a brief thank-you/wrap-up and mark the interview done. Don't drag it out asking about things \
-already covered.`
+Honesty rule, the most important one: keep commercial work, internships, personal/portfolio projects and \
+self-study clearly separate. Never suggest wording that makes project or self-taught work sound commercial, and \
+never offer to "round up" anything. If an answer is vague, ask one follow-up for specifics rather than filling \
+the gap yourself.
 
-export const EXTRACT_PROFILE_SYSTEM_PROMPT = `You are converting a completed interview transcript into a \
-structured candidate profile. Be strictly faithful to what was actually said:
+Reply in the language the candidate writes in. Keep each message short and conversational. Once every topic \
+above is covered well enough to write a solid resume from — say a brief thank-you and mark the interview done. \
+Don't drag it out asking about things already covered.`
 
-- Never invent or embellish skills, technologies, or experience that weren't mentioned.
-- In the "experience" narrative, keep commercial work, personal/portfolio projects, internships, and self-study \
-  clearly distinguishable — never blur them into one undifferentiated "experience". This is the single most \
-  important rule: the owner explicitly does not want their background exaggerated.
+export const INTERVIEW_SYSTEM_PROMPT = `You are conducting a structured interview to build a job-search candidate \
+profile for the owner's personal job tool. The profile drives three things: an honest match score against real \
+vacancies, a resume generated from it, and advice on what to improve — so it needs to be complete and accurate, \
+not aspirational.
+
+${INTERVIEW_TOPICS}`
+
+// Same interview, but starting from an already-saved profile: fill gaps and
+// capture what changed instead of re-asking everything.
+export function buildUpdateInterviewSystemPrompt(profile: CandidateProfile): string {
+  return `You are continuing a structured interview for a job-search candidate profile. The candidate already has \
+a saved profile (below). Your job now:
+
+- Start by briefly saying what looks thin or missing for a strong resume (e.g. a project with no description of \
+  what it does, a job with no dates, no education listed, no language levels) and ask whether anything has \
+  changed since (new job, new project, new skills).
+- Fill those gaps and capture the changes. Do not re-ask things the profile already covers well.
+
+Saved profile:
+${JSON.stringify(stripContact(profile), null, 2)}
+
+For reference, the full list of topics a complete profile covers:
+
+${INTERVIEW_TOPICS}`
+}
+
+const EXTRACT_RULES = `Be strictly faithful to what was actually said:
+
+- Never invent or embellish skills, technologies, experience, dates or achievements that weren't mentioned. An \
+  empty field is always better than a guessed one.
+- Every workExperience entry must have the kind the candidate stated (COMMERCIAL / INTERNSHIP / FREELANCE / \
+  VOLUNTEER). Personal, team, academic, hackathon and open-source work goes into projects, never into \
+  workExperience. This is the single most important rule: the owner explicitly does not want their background \
+  exaggerated.
+- achievements: only concrete things the candidate described. No invented metrics.
+- In the "experience" narrative (a short paragraph), keep commercial work, projects, internships and self-study \
+  clearly distinguishable.
 - For conflictingStackKeywords, use the languages/frameworks the candidate explicitly said they do NOT know. Do \
   not add ones you're merely guessing they might not know.
-- For fields the transcript didn't clearly cover, use a reasonable minimal value (an empty array, a conservative \
-  default) rather than guessing specifics. hardRejectTitleKeywords defaults to \
-  ["senior", "lead", "principal", "staff", "architect", "head of"] unless the candidate said otherwise. \
-  flagIfRequiredYearsAbove defaults to 2 unless they gave a different number.
+- languages is a plain list of language names; languageLevels has the level for each one the candidate stated.
+- hardRejectTitleKeywords defaults to ["senior", "lead", "principal", "staff", "architect", "head of"] unless \
+  the candidate said otherwise. flagIfRequiredYearsAbove defaults to 2 unless they gave a different number.
 - resumeVersions: a short "stack" description string for each of FULLSTACK/BACKEND/FRONTEND, describing what that \
   resume version would emphasize (e.g. "Node.js/PostgreSQL" for BACKEND) — only for roles actually in targetRoles; \
-  for a role not in targetRoles, use an empty string.`
+  for a role not in targetRoles, use an empty string.
+- Write every free-text field in English (the resume is in English), even if the interview was in another \
+  language. Translate faithfully — don't upgrade the meaning while translating.`
+
+export const EXTRACT_PROFILE_SYSTEM_PROMPT = `You are converting a completed interview transcript into a \
+structured candidate profile. ${EXTRACT_RULES}`
+
+export function buildUpdateExtractSystemPrompt(profile: CandidateProfile): string {
+  return `You are updating a saved candidate profile with what came out of a follow-up interview. Return the \
+complete updated profile: keep everything from the saved profile that the transcript doesn't change, add what's \
+new, and correct what the candidate corrected. ${EXTRACT_RULES}
+
+Saved profile:
+${JSON.stringify(stripContact(profile), null, 2)}`
+}
 
 export function buildExtractProfileUserMessage(transcript: { role: 'user' | 'assistant'; content: string }[]): string {
   const lines = transcript.map(m => `${m.role === 'user' ? 'Candidate' : 'Interviewer'}: ${m.content}`)
   return ['Interview transcript:', '', ...lines].join('\n')
+}
+
+// Contact details never go to the LLM — they're not needed for the
+// interview, and it's personal data the model has no use for.
+function stripContact(profile: CandidateProfile): Omit<CandidateProfile, 'contact'> {
+  const { contact: _contact, ...rest } = profile
+  return rest
 }

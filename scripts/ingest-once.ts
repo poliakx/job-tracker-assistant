@@ -4,11 +4,12 @@
 //        npm run ingest:once -- <name>    (one source, by its name)
 import prisma from '@/backend/db/prisma'
 import { runFilter, runIngest } from '@/backend/pipeline'
-import { findSource, sources } from '@/backend/sources'
+import { findSource, getSources } from '@/backend/sources'
 
 async function main() {
   const only = process.argv[2]
-  const toRun = only ? [findSource(only)] : sources
+  const sources = await getSources()
+  const toRun = only ? [await findSource(only)] : sources
   if (toRun.some(s => !s)) {
     throw new Error(`unknown or disabled source: ${only} (available: ${sources.map(s => s.name).join(', ')})`)
   }

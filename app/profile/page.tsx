@@ -1,7 +1,11 @@
 "use client"
 import React, { useEffect, useRef, useState } from 'react'
 import Card from '@/frontend/components/ui/Card'
-import { CandidateProfile } from '@/types'
+import Panel from '@/frontend/components/dashboard/Panel'
+import ContactForm from '@/frontend/components/profile/ContactForm'
+import ProfileOverview, { CompletenessList } from '@/frontend/components/profile/ProfileOverview'
+import { profileCompleteness } from '@/frontend/helpers/profileCompleteness'
+import { CandidateProfile, ContactInfo } from '@/types'
 import {
   clearInterviewDraft,
   loadInterviewDraft,
@@ -9,10 +13,26 @@ import {
   type InterviewMessage as ChatMessage,
 } from '@/frontend/helpers/storage'
 
-type Phase = 'chat' | 'extracting' | 'review' | 'saving' | 'saved'
+// 'loading' until we know whether there's a saved profile or a draft;
+// 'overview' shows the saved profile; the rest are the interview flow.
+type Phase = 'loading' | 'overview' | 'chat' | 'extracting' | 'review' | 'saving'
+type Mode = 'new' | 'update'
+
+async function putProfile(profile: unknown): Promise<CandidateProfile> {
+  const res = await fetch('/api/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.details || body.error || 'save failed')
+  return body as CandidateProfile
+}
 
 export default function ProfilePage() {
-  const [phase, setPhase] = useState<Phase>('chat')
+  const [phase, setPhase] = useState<Phase>('loading')
+  const [mode, setMode] = useState<Mode>('new')
+  const [saved, setSaved] = useState<CandidateProfile | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -20,6 +40,7 @@ export default function ProfilePage() {
   // Which step the Retry button re-runs after a failure.
   const [retry, setRetry] = useState<'interview' | 'extract' | null>(null)
   const [profileJson, setProfileJson] = useState('')
+  const [editingJson, setEditingJson] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const startedRef = useRef(false)
 
@@ -30,39 +51,64 @@ export default function ProfilePage() {
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
-    const draft = loadInterviewDraft()
-    if (!draft || draft.messages.length === 0) {
-      void sendToInterviewer([])
-      return
-    }
-    // Pick up where the owner left off instead of starting a new interview.
-    setMessages(draft.messages)
-    setProfileJson(draft.profileJson)
-    if (draft.phase === 'extracting') {
-      void runExtraction(draft.messages)
-    } else {
-      setPhase(draft.phase)
-      if (draft.phase === 'chat' && draft.messages[draft.messages.length - 1].role === 'user') {
-        setError('Your last answer never got a reply. Press Retry to send it again.')
-        setRetry('interview')
-      }
-    }
+    void init()
     // Intentionally run once on mount only — startedRef already guards
-    // against the double-invoke Strict Mode does in dev; adding
-    // sendToInterviewer here would just be noise since it's a new
-    // reference every render regardless.
+    // against the double-invoke Strict Mode does in dev.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function init() {
+    let savedProfile: CandidateProfile | null = null
+    try {
+      const res = await fetch('/api/profile')
+      if (res.ok) savedProfile = (await res.json()).profile
+    } catch {
+      // Treated as "nothing saved" — the interview still works.
+    }
+    setSaved(savedProfile)
+
+    const draft = loadInterviewDraft()
+    if (draft && draft.messages.length > 0) {
+      // Pick up where the owner left off instead of starting a new interview.
+      setMode(draft.mode)
+      setMessages(draft.messages)
+      setProfileJson(draft.profileJson)
+      if (draft.phase === 'extracting') {
+        void runExtraction(draft.messages, draft.mode)
+      } else {
+        setPhase(draft.phase)
+        if (draft.phase === 'chat' && draft.messages[draft.messages.length - 1].role === 'user') {
+          setError('Your last answer never got a reply. Press Retry to send it again.')
+          setRetry('interview')
+        }
+      }
+      return
+    }
+
+    if (savedProfile) setPhase('overview')
+    else startInterview('new')
+  }
 
   // Autosave the draft after every change. Skipped while empty so the
   // initial render can't overwrite a stored draft before it's restored.
   useEffect(() => {
-    if (phase === 'saved' || messages.length === 0) return
+    if (phase === 'loading' || phase === 'overview' || messages.length === 0) return
     const storedPhase = phase === 'saving' ? 'review' : phase
-    saveInterviewDraft({ messages, phase: storedPhase, profileJson })
-  }, [messages, phase, profileJson])
+    saveInterviewDraft({ messages, phase: storedPhase, profileJson, mode })
+  }, [messages, phase, profileJson, mode])
 
-  async function sendToInterviewer(history: ChatMessage[]) {
+  function startInterview(nextMode: Mode) {
+    clearInterviewDraft()
+    setMode(nextMode)
+    setMessages([])
+    setProfileJson('')
+    setInput('')
+    setError(null)
+    setPhase('chat')
+    void sendToInterviewer([], nextMode)
+  }
+
+  async function sendToInterviewer(history: ChatMessage[], interviewMode: Mode = mode) {
     setSending(true)
     setError(null)
     setRetry(null)
@@ -70,7 +116,7 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile/interview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, mode: interviewMode }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -80,7 +126,7 @@ export default function ProfilePage() {
       const next = [...history, { role: 'assistant' as const, content: data.message }]
       setMessages(next)
       if (data.done) {
-        await runExtraction(next)
+        await runExtraction(next, interviewMode)
       }
     } catch (e) {
       const reason = e instanceof Error ? ` (${e.message})` : ''
@@ -91,7 +137,7 @@ export default function ProfilePage() {
     }
   }
 
-  async function runExtraction(transcript: ChatMessage[]) {
+  async function runExtraction(transcript: ChatMessage[], interviewMode: Mode = mode) {
     setPhase('extracting')
     setError(null)
     setRetry(null)
@@ -99,7 +145,7 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile/interview/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: transcript }),
+        body: JSON.stringify({ messages: transcript, mode: interviewMode }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -123,12 +169,15 @@ export default function ProfilePage() {
 
   function handleStartOver() {
     if (!confirm('Start the interview from scratch? Your current answers will be discarded.')) return
+    startInterview('new')
+  }
+
+  function handleCancel() {
+    if (!confirm('Leave the interview? Your answers in it will be discarded.')) return
     clearInterviewDraft()
     setMessages([])
-    setProfileJson('')
-    setInput('')
-    setPhase('chat')
-    void sendToInterviewer([])
+    setError(null)
+    setPhase('overview')
   }
 
   function handleSend() {
@@ -148,39 +197,133 @@ export default function ProfilePage() {
       setError('That JSON is not valid — fix it before saving.')
       return
     }
-    setPhase('saving')
+    const prevPhase = phase
+    // Editing JSON from the overview stays on the overview while saving.
+    if (prevPhase !== 'overview') setPhase('saving')
     setError(null)
     try {
-      const res = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed),
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.details || body.error || 'save failed')
-      }
+      const profile = await putProfile(parsed)
       clearInterviewDraft()
-      setPhase('saved')
+      setMessages([])
+      setSaved(profile)
+      setEditingJson(false)
+      setPhase('overview')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save the profile.')
-      setPhase('review')
+      setPhase(prevPhase === 'overview' ? 'overview' : 'review')
     }
   }
 
+  async function handleSaveContact(contact: ContactInfo) {
+    if (!saved) return
+    setSaved(await putProfile({ ...saved, contact }))
+  }
+
+  const inInterview = phase === 'chat' || phase === 'extracting'
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Profile interview</h1>
-        {phase !== 'saved' && messages.length > 1 && (
-          <button onClick={handleStartOver} disabled={sending} className="text-sm text-gray-500 hover:text-gray-900 disabled:opacity-50">
-            Start over
-          </button>
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <h1 className="text-2xl font-semibold">{phase === 'overview' ? 'Profile' : 'Profile interview'}</h1>
+        {inInterview && (
+          <div className="flex gap-3">
+            {saved && (
+              <button onClick={handleCancel} disabled={sending} className="text-sm text-gray-500 hover:text-gray-900 disabled:opacity-50">
+                Cancel
+              </button>
+            )}
+            {messages.length > 1 && (
+              <button onClick={handleStartOver} disabled={sending} className="text-sm text-gray-500 hover:text-gray-900 disabled:opacity-50">
+                Start over
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {(phase === 'chat' || phase === 'extracting') && (
+      {phase === 'loading' && <p className="text-sm text-gray-500">Loading…</p>}
+
+      {phase === 'overview' && saved && (
+        <div className="grid lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-2 space-y-6">
+            <Panel title="Contact details" description="Printed on your resume exactly as entered here.">
+              <ContactForm initial={saved.contact} onSave={handleSaveContact} />
+            </Panel>
+            <Panel title="Your profile" description="Built from the interview. The match analysis and resume use only this.">
+              {editingJson ? (
+                <>
+                  <textarea
+                    value={profileJson}
+                    onChange={e => setProfileJson(e.target.value)}
+                    rows={24}
+                    className="w-full px-3 py-2 border border-gray-200 rounded text-xs font-mono"
+                  />
+                  {error && <p className="text-sm text-red-700 mt-2">{error}</p>}
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={handleSave} className="px-3 py-2 rounded-lg text-sm bg-blue-700 text-white hover:bg-blue-800">
+                      Save
+                    </button>
+                    <button onClick={() => setEditingJson(false)} className="px-3 py-2 rounded-lg border text-sm">
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <ProfileOverview profile={saved} />
+              )}
+            </Panel>
+          </div>
+
+          <div className="space-y-6">
+            <Panel title="Ready for a resume?" description="What's still missing.">
+              <CompletenessList items={profileCompleteness(saved)} />
+            </Panel>
+            <Panel title="Update profile">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => startInterview('update')}
+                  className="px-3 py-2 rounded-lg text-sm bg-blue-700 text-white hover:bg-blue-800"
+                >
+                  Fill gaps / add something new
+                </button>
+                <p className="text-xs text-gray-500">
+                  A follow-up interview that starts from your saved profile — for a new job, a new project, or
+                  anything a vacancy analysis said to add.
+                </p>
+                <button
+                  onClick={() => {
+                    setProfileJson(JSON.stringify(saved, null, 2))
+                    setError(null)
+                    setEditingJson(true)
+                  }}
+                  className="px-3 py-2 rounded-lg border border-gray-200 text-sm hover:bg-gray-50"
+                >
+                  Edit as JSON
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Run the full interview from scratch? Your saved profile stays until you save the new one.')) {
+                      startInterview('new')
+                    }
+                  }}
+                  className="px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-900"
+                >
+                  Redo full interview
+                </button>
+              </div>
+            </Panel>
+          </div>
+        </div>
+      )}
+
+      {inInterview && (
         <Card>
+          {mode === 'new' && messages.length <= 1 && (
+            <p className="text-xs text-gray-500 mb-3">
+              A full interview — work history, projects, education, languages — takes about 15–20 minutes. Your
+              answers are saved as you go, so you can close the tab and come back.
+            </p>
+          )}
           <div className="max-h-[60vh] overflow-y-auto space-y-3 mb-3">
             {messages.map((m, i) => (
               <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
@@ -194,7 +337,9 @@ export default function ProfilePage() {
                 </span>
               </div>
             ))}
-            {(sending || phase === 'extracting') && <p className="text-sm text-gray-400 italic">Thinking…</p>}
+            {(sending || phase === 'extracting') && (
+              <p className="text-sm text-gray-400 italic">{phase === 'extracting' ? 'Building your profile…' : 'Thinking…'}</p>
+            )}
             <div ref={bottomRef} />
           </div>
 
@@ -240,8 +385,9 @@ export default function ProfilePage() {
       {(phase === 'review' || phase === 'saving') && (
         <Card>
           <p className="text-sm text-gray-600 mb-2">
-            Here&rsquo;s what the interview came away with. Check it over — especially the stack and the &ldquo;not
-            known&rdquo; list — and edit the JSON directly if anything&rsquo;s off, then save.
+            Here&rsquo;s what the interview came away with. Check it over — especially that every job has the right
+            &ldquo;kind&rdquo; (commercial / internship / …) and that nothing is overstated — and edit the JSON directly
+            if anything&rsquo;s off, then save.
           </p>
           <textarea
             value={profileJson}
@@ -269,17 +415,6 @@ export default function ProfilePage() {
               Back to interview
             </button>
           </div>
-        </Card>
-      )}
-
-      {phase === 'saved' && (
-        <Card>
-          <p className="text-sm text-gray-800 mb-3">
-            Saved. The pipeline will use this profile from the next run — filter and analysis prompts included.
-          </p>
-          <a href="/" className="text-sm px-3 py-2 border rounded inline-block">
-            Go to dashboard
-          </a>
         </Card>
       )}
     </div>

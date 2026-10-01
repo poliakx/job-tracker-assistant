@@ -11,7 +11,7 @@ const TABS: { value: VacancyStatus; label: string }[] = [
 ]
 
 const EMPTY_TEXT: Record<VacancyStatus, string> = {
-  NEW: 'No new vacancies. Run a search to look for more.',
+  NEW: 'No vacancies yet. Add one to see how well you match it.',
   SHORTLISTED: 'Nothing shortlisted yet.',
   APPLIED: 'No vacancies added to applications yet.',
   DISMISSED: 'Nothing dismissed.',
@@ -23,12 +23,16 @@ export default function VacancyList({
   onShortlist,
   onDismiss,
   onPromote,
+  onAnalyze,
+  analyzingIds,
 }: {
   vacancies: Vacancy[]
   lastRun: PipelineRun | null
   onShortlist: (v: Vacancy) => void
   onDismiss: (v: Vacancy) => void
   onPromote: (v: Vacancy) => void
+  onAnalyze: (v: Vacancy) => void
+  analyzingIds: Set<string>
 }) {
   const [tab, setTab] = useState<VacancyStatus>('NEW')
   const [query, setQuery] = useState('')
@@ -92,6 +96,8 @@ export default function VacancyList({
                 onShortlist={onShortlist}
                 onDismiss={onDismiss}
                 onPromote={onPromote}
+                onAnalyze={onAnalyze}
+                analyzing={analyzingIds.has(v.id)}
               />
             ))}
           </ul>

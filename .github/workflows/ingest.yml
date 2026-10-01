@@ -1,12 +1,11 @@
 name: Vacancy ingest pipeline
 
 on:
-  schedule:
-    # Every 4 hours. A single invocation only deep-analyzes a small batch
-    # (see ANALYZE_BATCH_LIMIT in app/api/cron/ingest/route.ts) to stay
-    # inside a serverless time limit, so running a few times a day lets the
-    # backlog drain without any one run taking too long.
-    - cron: '0 */4 * * *'
+  # Automated collection is switched off (vacancies are added by hand) — the
+  # schedule is removed and the endpoint returns 403 unless the app has
+  # SCRAPING_ENABLED=true. To turn it back on, set that and restore:
+  #   schedule:
+  #     - cron: '0 */4 * * *'
   workflow_dispatch: {}
 
 jobs:
