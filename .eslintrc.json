@@ -54,18 +54,18 @@
     },
     {
       "files": [
-        "backend/sources/**/*.ts"
+        "backend/vacancies/sources/**/*.ts"
       ],
       "excludedFiles": [
-        "backend/sources/http.ts",
-        "backend/sources/**/*.test.ts"
+        "backend/vacancies/sources/http.ts",
+        "backend/vacancies/sources/**/*.test.ts"
       ],
       "rules": {
         "no-restricted-globals": [
           "error",
           {
             "name": "fetch",
-            "message": "Job sources must make every request through createPoliteClient (backend/sources/http.ts), which enforces robots.txt, an honest User-Agent and rate limits."
+            "message": "Job sources must make every request through createPoliteClient (backend/vacancies/sources/http.ts), which enforces robots.txt, an honest User-Agent and rate limits."
           }
         ]
       }

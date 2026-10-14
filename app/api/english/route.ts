@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getEnglishAssessments } from '@/backend/db'
+import { getEnglishAssessments } from '@/backend/english/repository'
 
 export const dynamic = 'force-dynamic'
 

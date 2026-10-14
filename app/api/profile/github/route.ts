@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { describeRepos, getRepoDetails, GithubError, listRepos, parseGithubUsername } from '@/backend/github'
-import { extractProfile } from '@/backend/llm/interview'
-import { getSavedProfile } from '@/backend/db'
+import { describeRepos, getRepoDetails, GithubError, listRepos, parseGithubUsername } from '@/backend/profile/github'
+import { extractProfile } from '@/backend/profile/interview/interview'
+import { getSavedProfile } from '@/backend/profile/repository'
 
 export const dynamic = 'force-dynamic'
 

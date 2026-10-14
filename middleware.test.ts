@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { middleware } from './middleware'
-import { createSessionToken, SESSION_COOKIE } from '@/backend/auth'
+import { createSessionToken, SESSION_COOKIE } from '@/backend/auth/session'
 
 function request(path: string, cookie?: string) {
   const req = new NextRequest(`http://localhost${path}`)

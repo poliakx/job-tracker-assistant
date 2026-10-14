@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getLatestPipelineRun } from '@/backend/db'
+import { getLatestPipelineRun } from '@/backend/vacancies/pipeline/repository'
 
 // Without a request param, Next.js tries to statically optimize a GET-only
 // route at build time — force it to run fresh every call instead, or the

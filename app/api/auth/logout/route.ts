@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { SESSION_COOKIE } from '@/backend/auth'
+import { SESSION_COOKIE } from '@/backend/auth/session'
 
 export const dynamic = 'force-dynamic'
 

@@ -54,7 +54,7 @@ export interface Vacancy {
   analysis?: Record<string, unknown>
   suggestedResume?: SuggestedResume
   applicationId?: string
-  // Output of the cheap rule filter (backend/filter.ts). undefined/null until
+  // Output of the cheap rule filter (backend/vacancies/filter/filter.ts). undefined/null until
   // the filter has run; [] means it ran and found nothing to flag.
   filterReasons?: string[]
   createdAt: string
@@ -133,10 +133,10 @@ export interface SearchSummary {
   errors: number
 }
 
-// The candidate profile that drives backend/filter.ts and backend/analyze.ts's
-// prompts. Lives here (not backend/profile.ts) because it's a shared
+// The candidate profile that drives backend/vacancies/filter/filter.ts and backend/vacancies/analysis/analyze.ts's
+// prompts. Lives here (not backend/profile/schema.ts) because it's a shared
 // contract: the frontend interview UI (app/profile/page.tsx) needs the same
-// shape as the backend that stores and validates it. See backend/profile.ts
+// shape as the backend that stores and validates it. See backend/profile/seed.ts
 // for the seed data and its zod schema.
 export type TargetRole = 'BACKEND' | 'FRONTEND' | 'FULLSTACK' | 'INTERNSHIP'
 
@@ -256,7 +256,7 @@ export interface CandidateProfile {
   education: EducationEntry[]
   certifications: CertificationEntry[]
   // Levels for `languages` above (which stays a plain list of names for
-  // backend/filter.ts).
+  // backend/vacancies/filter/filter.ts).
   languageLevels: LanguageLevel[]
   workAuthorization: string
   availability: string
@@ -292,7 +292,7 @@ export interface ResumeView {
   resume: Resume | null
   contact: ContactInfo
   // Skills on the resume that the profile never mentions — see
-  // backend/resume.ts's findUnsupportedSkills. Shown as a warning.
+  // backend/resume/content.ts's findUnsupportedSkills. Shown as a warning.
   unsupportedSkills: string[]
   vacancy: { id: string; title: string; company: string } | null
 }
@@ -357,7 +357,7 @@ export interface EnglishAssessment {
 }
 
 // One of the owner's GitHub repos, as GET /api/profile/github lists it for
-// importing into the profile's projects (backend/github.ts).
+// importing into the profile's projects (backend/profile/github.ts).
 export interface GithubRepo {
   name: string
   fullName: string

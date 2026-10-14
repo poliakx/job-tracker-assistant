@@ -5,8 +5,9 @@ const interviewStep = vi.fn()
 const getSavedProfile = vi.fn()
 const getLatestEnglishResult = vi.fn()
 
-vi.mock('@/backend/llm/interview', () => ({ interviewStep }))
-vi.mock('@/backend/db', () => ({ getSavedProfile, getLatestEnglishResult }))
+vi.mock('@/backend/profile/interview/interview', () => ({ interviewStep }))
+vi.mock('@/backend/profile/repository', () => ({ getSavedProfile }))
+vi.mock('@/backend/english/repository', () => ({ getLatestEnglishResult }))
 
 const { POST } = await import('./route')
 

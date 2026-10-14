@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { promoteVacancyToApplication } from '@/backend/db'
+import { promoteVacancyToApplication } from '@/backend/vacancies/repository'
 
 // POST /api/vacancies/:id/promote — creates a JobApplication from the
 // vacancy and links them. Idempotent: calling it again on an already-

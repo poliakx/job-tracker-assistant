@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authMode, createSessionToken, passwordMatches, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/backend/auth'
+import { authMode, createSessionToken, passwordMatches, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/backend/auth/session'
 
 export const dynamic = 'force-dynamic'
 

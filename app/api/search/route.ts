@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { findSource, getSources } from '@/backend/sources'
-import { PipelineRunError, runPipeline } from '@/backend/runPipeline'
-import { SCRAPING_DISABLED_ERROR, isScrapingEnabled } from '@/backend/scraping'
-import type { VacancySource } from '@/backend/sources/types'
+import { findSource, getSources } from '@/backend/vacancies/sources'
+import { PipelineRunError, runPipeline } from '@/backend/vacancies/pipeline/run'
+import { SCRAPING_DISABLED_ERROR, isScrapingEnabled } from '@/backend/vacancies/pipeline/scraping'
+import type { VacancySource } from '@/backend/vacancies/sources/types'
 
 export const dynamic = 'force-dynamic'
 

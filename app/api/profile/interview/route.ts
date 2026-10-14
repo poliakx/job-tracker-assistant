@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { interviewStep } from '@/backend/llm/interview'
-import { getLatestEnglishResult, getSavedProfile } from '@/backend/db'
-import type { LlmMessage } from '@/backend/llm/llmTool'
+import { interviewStep } from '@/backend/profile/interview/interview'
+import { getLatestEnglishResult } from '@/backend/english/repository'
+import { getSavedProfile } from '@/backend/profile/repository'
+import type { LlmMessage } from '@/backend/shared/llm/callTool'
 
 export const dynamic = 'force-dynamic'
 

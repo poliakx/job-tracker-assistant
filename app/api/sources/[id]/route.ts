@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
-import { deleteSourceConfig, setSourceConfigEnabled } from '@/backend/db'
+import { deleteSourceConfig, setSourceConfigEnabled } from '@/backend/vacancies/sources/repository'
 
 const PatchSchema = z.object({ enabled: z.boolean() })
 

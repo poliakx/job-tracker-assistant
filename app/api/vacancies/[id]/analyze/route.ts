@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getActiveProfile, getLatestEnglishResult, getVacancyById, updateVacancy } from '@/backend/db'
-import { analyzeVacancyDeep } from '@/backend/llm/analyze'
+import { getActiveProfile } from '@/backend/profile/repository'
+import { getLatestEnglishResult } from '@/backend/english/repository'
+import { getVacancyById, updateVacancy } from '@/backend/vacancies/repository'
+import { analyzeVacancyDeep } from '@/backend/vacancies/analysis/analyze'
 
 export const dynamic = 'force-dynamic'
 

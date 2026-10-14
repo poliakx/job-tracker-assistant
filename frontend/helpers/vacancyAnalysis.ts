@@ -2,7 +2,7 @@
 // VacancyCard so the component only deals with already-narrowed data.
 import type { Vacancy } from '@/types'
 
-// Deep analysis result (see backend/analyze.ts's DeepAnalysisSchema) —
+// Deep analysis result (see backend/vacancies/analysis/analyze.ts's DeepAnalysisSchema) —
 // Vacancy.analysis is typed loosely (Record<string, unknown>) since it can
 // also hold a triage-only rejection or nothing at all; narrow it here at
 // render time.

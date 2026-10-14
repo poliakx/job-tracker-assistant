@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { safeNextPath } from '@/frontend/helpers/safeNextPath'
 
 // The sign-in screen for a deployed instance (APP_PASSWORD, see
-// backend/auth.ts and middleware.ts). Covers the whole viewport, so the
+// backend/auth/session.ts and middleware.ts). Covers the whole viewport, so the
 // app shell from the root layout stays hidden behind it.
 function LoginForm() {
   const next = safeNextPath(useSearchParams()?.get('next'))

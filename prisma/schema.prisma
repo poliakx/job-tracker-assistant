@@ -79,7 +79,7 @@ model Vacancy {
   analysis        Json?
   suggestedResume SuggestedResume?
 
-  // Output of the cheap rule filter (lib/filter.ts): string[], or null
+  // Output of the cheap rule filter (backend/vacancies/filter/filter.ts): string[], or null
   // until the filter has run. Not the same as `analysis` (Phase 5's LLM
   // output) — this is fast/free heuristics, always shown even for
   // vacancies the filter didn't dismiss.
@@ -97,10 +97,10 @@ model Vacancy {
   @@index([status, fitScore])
 }
 
-// The candidate profile that drives lib/filter.ts and lib/analyze.ts's
-// prompts. A singleton row (id is always "default") so there's exactly one
+// The candidate profile that drives the rule filter and the LLM analysis
+// prompts (backend/vacancies/filter/, backend/vacancies/analysis/). A singleton row (id is always "default") so there's exactly one
 // live profile, editable via the Phase-9 AI interview at /profile. `data`
-// mirrors lib/profile.ts's CandidateProfile shape; that file's hardcoded
+// mirrors the CandidateProfile type (types/index.ts); backend/profile/seed.ts's
 // object becomes the seed/fallback used before this row is ever created.
 model Profile {
   id        String   @id
@@ -164,8 +164,8 @@ enum SourceKind {
 }
 
 // A job source configured in the UI (/sources). Built into a VacancySource
-// at run time by backend/sources/configured.ts; code adapters in
-// backend/sources/index.ts don't have a row here.
+// at run time by backend/vacancies/sources/configured.ts; code adapters in
+// backend/vacancies/sources/index.ts don't have a row here.
 model SourceConfig {
   id         String     @id @default(cuid())
   kind       SourceKind

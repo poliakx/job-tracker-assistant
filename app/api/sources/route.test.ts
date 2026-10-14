@@ -6,9 +6,9 @@ const findSourceConfig = vi.fn()
 const isUrlAllowed = vi.fn()
 const listSourceInfo = vi.fn()
 
-vi.mock('@/backend/db', () => ({ createSourceConfig, findSourceConfig }))
-vi.mock('@/backend/sources', () => ({ listSourceInfo }))
-vi.mock('@/backend/sources/http', () => ({ isUrlAllowed, createPoliteClient: () => ({}) }))
+vi.mock('@/backend/vacancies/sources/repository', () => ({ createSourceConfig, findSourceConfig }))
+vi.mock('@/backend/vacancies/sources', () => ({ listSourceInfo }))
+vi.mock('@/backend/vacancies/sources/http', () => ({ isUrlAllowed, createPoliteClient: () => ({}) }))
 
 const { GET, POST } = await import('./route')
 

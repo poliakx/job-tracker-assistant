@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVacancyById } from '@/backend/db'
+import { getVacancyById } from '@/backend/vacancies/repository'
 
 // GET /api/vacancies/:id — one vacancy in full, including the posting text
 // the list endpoint leaves out.

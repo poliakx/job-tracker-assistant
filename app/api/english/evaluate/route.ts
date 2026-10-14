@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createEnglishAssessment } from '@/backend/db'
-import { EnglishTestSchema, scoreQuiz } from '@/backend/english'
-import { evaluateEnglish } from '@/backend/llm/english'
+import { createEnglishAssessment } from '@/backend/english/repository'
+import { EnglishTestSchema, scoreQuiz } from '@/backend/english/assessment'
+import { evaluateEnglish } from '@/backend/english/llm'
 
 export const dynamic = 'force-dynamic'
 

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getVacancyById = vi.fn()
 
-vi.mock('@/backend/db', () => ({ getVacancyById }))
+vi.mock('@/backend/vacancies/repository', () => ({ getVacancyById }))
 
 const { GET } = await import('./route')
 

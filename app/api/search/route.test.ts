@@ -10,8 +10,8 @@ const runPipeline = vi.fn()
 const sourceA = { name: 'a', label: 'A' }
 const sourceB = { name: 'b', label: 'B' }
 
-vi.mock('@/backend/runPipeline', () => ({ runPipeline, PipelineRunError }))
-vi.mock('@/backend/sources', () => ({
+vi.mock('@/backend/vacancies/pipeline/run', () => ({ runPipeline, PipelineRunError }))
+vi.mock('@/backend/vacancies/sources', () => ({
   getSources: async () => [sourceA, sourceB],
   findSource: async (name: string) => [sourceA, sourceB].find(s => s.name === name),
 }))

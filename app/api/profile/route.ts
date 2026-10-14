@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSavedProfile, saveProfile } from '@/backend/db'
-import { CandidateProfileSchema } from '@/backend/profile'
+import { getSavedProfile, saveProfile } from '@/backend/profile/repository'
+import { CandidateProfileSchema } from '@/backend/profile/schema'
 
 // Reading/writing the live profile itself never hits the LLM — that only
 // happens in /api/profile/interview(/extract). This route just persists
@@ -8,7 +8,7 @@ import { CandidateProfileSchema } from '@/backend/profile'
 export const dynamic = 'force-dynamic'
 
 // { profile: CandidateProfile | null } — null until the owner has saved
-// one (the seed profile backend/db falls back to is not returned here).
+// one (the seed profile backend/profile/repository.ts falls back to is not returned here).
 export async function GET() {
   try {
     const profile = await getSavedProfile()

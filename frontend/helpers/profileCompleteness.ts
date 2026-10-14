@@ -11,7 +11,7 @@ export interface CompletenessItem {
 
 export function profileCompleteness(p: CandidateProfile): CompletenessItem[] {
   const undatedJobs = p.workExperience.filter(w => !w.startDate).length
-  // Same bar as backend/profileGaps.ts, which the follow-up interview asks
+  // Same bar as backend/profile/gaps.ts, which the follow-up interview asks
   // about: under two concrete achievements, a project gets one generic
   // resume line.
   const thinProjects = p.projects.filter(pr => !pr.description || pr.tech.length === 0 || pr.achievements.length < 2).length

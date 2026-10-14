@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ApplicationSource, ApplicationStatus } from '@prisma/client'
 import { z } from 'zod'
-import { getApplications, createApplication, updateApplication, deleteApplication } from '@/backend/db'
+import { getApplications, createApplication, updateApplication, deleteApplication } from '@/backend/applications/repository'
 
 // A date from an <input type="date"> ("2026-10-14") or a full ISO
 // timestamp, as the API returns it.
@@ -32,7 +32,7 @@ function invalid(error: z.ZodError) {
 }
 
 // The validated fields with "" / null optional values turned into
-// undefined — the shape backend/db expects.
+// undefined — the shape backend/applications/repository.ts expects.
 function clean<T extends Record<string, unknown>>(data: T) {
   return Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v === '' || v === null ? undefined : v])) as {
     [K in keyof T]: Exclude<T[K], null | ''>

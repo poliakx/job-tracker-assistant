@@ -7,8 +7,8 @@ const createVacancy = vi.fn()
 
 const extractVacancyDetails = vi.fn()
 
-vi.mock('@/backend/db', () => ({ getVacancies, updateVacancy, createVacancy }))
-vi.mock('@/backend/llm/vacancyDetails', () => ({ extractVacancyDetails }))
+vi.mock('@/backend/vacancies/repository', () => ({ getVacancies, updateVacancy, createVacancy }))
+vi.mock('@/backend/vacancies/details/extract', () => ({ extractVacancyDetails }))
 
 const { GET, PATCH, POST } = await import('./route')
 

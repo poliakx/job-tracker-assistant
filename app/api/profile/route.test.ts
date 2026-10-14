@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const getSavedProfile = vi.fn()
 const saveProfile = vi.fn()
 
-vi.mock('@/backend/db', () => ({ getSavedProfile, saveProfile }))
+vi.mock('@/backend/profile/repository', () => ({ getSavedProfile, saveProfile }))
 
 const { GET, PUT } = await import('./route')
 

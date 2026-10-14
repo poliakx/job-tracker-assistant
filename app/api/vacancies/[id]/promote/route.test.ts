@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const promoteVacancyToApplication = vi.fn()
 
-vi.mock('@/backend/db', () => ({ promoteVacancyToApplication }))
+vi.mock('@/backend/vacancies/repository', () => ({ promoteVacancyToApplication }))
 
 const { POST } = await import('./route')
 

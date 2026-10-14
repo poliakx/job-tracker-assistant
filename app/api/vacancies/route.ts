@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createVacancy, getVacancies, updateVacancy } from '@/backend/db'
-import { extractVacancyDetails, type VacancyDetails } from '@/backend/llm/vacancyDetails'
+import { createVacancy, getVacancies, updateVacancy } from '@/backend/vacancies/repository'
+import { extractVacancyDetails, type VacancyDetails } from '@/backend/vacancies/details/extract'
 import type { VacancyStatus } from '@/types'
 
 const VALID_STATUSES = ['NEW', 'SHORTLISTED', 'DISMISSED', 'APPLIED'] as const satisfies readonly VacancyStatus[]

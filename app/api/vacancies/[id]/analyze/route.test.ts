@@ -7,8 +7,10 @@ const getLatestEnglishResult = vi.fn()
 const updateVacancy = vi.fn()
 const analyzeVacancyDeep = vi.fn()
 
-vi.mock('@/backend/db', () => ({ getVacancyById, getActiveProfile, getLatestEnglishResult, updateVacancy }))
-vi.mock('@/backend/llm/analyze', () => ({ analyzeVacancyDeep }))
+vi.mock('@/backend/vacancies/repository', () => ({ getVacancyById, updateVacancy }))
+vi.mock('@/backend/profile/repository', () => ({ getActiveProfile }))
+vi.mock('@/backend/english/repository', () => ({ getLatestEnglishResult }))
+vi.mock('@/backend/vacancies/analysis/analyze', () => ({ analyzeVacancyDeep }))
 
 const { POST } = await import('./route')
 

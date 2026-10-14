@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const extractProfile = vi.fn()
 const getSavedProfile = vi.fn()
 
-vi.mock('@/backend/llm/interview', () => ({ extractProfile }))
-vi.mock('@/backend/db', () => ({ getSavedProfile }))
+vi.mock('@/backend/profile/interview/interview', () => ({ extractProfile }))
+vi.mock('@/backend/profile/repository', () => ({ getSavedProfile }))
 
 const { POST } = await import('./route')
 

@@ -6,7 +6,7 @@ const createApplication = vi.fn()
 const updateApplication = vi.fn()
 const deleteApplication = vi.fn()
 
-vi.mock('@/backend/db', () => ({ getApplications, createApplication, updateApplication, deleteApplication }))
+vi.mock('@/backend/applications/repository', () => ({ getApplications, createApplication, updateApplication, deleteApplication }))
 
 const { PATCH, POST } = await import('./route')
 

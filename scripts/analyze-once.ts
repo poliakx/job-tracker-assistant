@@ -1,8 +1,8 @@
 // Runs triage + deep analysis on a batch of stored vacancies. Manual
 // alongside the scheduled endpoint (Phase 6).
 // Usage: npm run analyze:once [batchSize]
-import prisma from '@/backend/db/prisma'
-import { runAnalyze } from '@/backend/pipeline'
+import prisma from '@/backend/shared/db/prisma'
+import { runAnalyze } from '@/backend/vacancies/pipeline/stages'
 
 const BATCH_SIZE = Number(process.argv[2] ?? 8)
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateResumeView, getResumeView } from '@/backend/resumeService'
+import { generateResumeView, getResumeView } from '@/backend/resume/service'
 
 export const dynamic = 'force-dynamic'
 

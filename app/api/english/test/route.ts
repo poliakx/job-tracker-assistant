@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateEnglishTest } from '@/backend/llm/english'
+import { generateEnglishTest } from '@/backend/english/llm'
 
 export const dynamic = 'force-dynamic'
 

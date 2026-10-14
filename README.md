@@ -95,7 +95,7 @@ details) and spends their Anthropic API key. So:
 
 - **Using it yourself?** Clone the repo and run your own copy with your own
   database and API key (see Getting started). A fresh copy starts from an
-  example profile in `backend/profile.ts` — run the interview on `/profile`
+  example profile in `backend/profile/seed.ts` — run the interview on `/profile`
   first, so matches and the resume are about you.
 - **Deploying it?** Set `APP_PASSWORD`. Every page then redirects to
   `/login`, and every API route answers 401 without a session (an httpOnly
@@ -146,13 +146,13 @@ deleted on the same page; vacancies they already found are kept.
 
 **As a code adapter**, for a site with its own API or data format — see
 [CONTRIBUTING.md](CONTRIBUTING.md) and the checklist in
-`backend/sources/index.ts`. Every adapter has to declare the same `legal`
+`backend/vacancies/sources/index.ts`. Every adapter has to declare the same `legal`
 record (terms link, note, date checked) or it doesn't compile.
 
 This repository ships the infrastructure without any site-specific
 adapters; add sources you are allowed to use. Every source, UI-configured
-or code, goes through one shared HTTP client (`backend/sources/http.ts`) —
-calling `fetch` directly in `backend/sources/` is a lint error — that:
+or code, goes through one shared HTTP client (`backend/vacancies/sources/http.ts`) —
+calling `fetch` directly in `backend/vacancies/sources/` is a lint error — that:
 
 - checks `robots.txt` before every request (RFC 9309 matching in
   `robots.ts`) and refuses disallowed URLs,
@@ -207,43 +207,58 @@ To turn it on after deploying the app:
 
 A run is safe to trigger more than once — an already-ingested vacancy is
 never re-fetched, and an already-analyzed one is never re-analyzed (see
-`backend/pipeline.ts`).
+`backend/vacancies/pipeline/stages.ts`).
 
 ## Project structure
 
-- `app/` — Next.js routing only (pages and API route handlers), kept thin;
-  each one delegates to `backend/`.
-- `backend/` — server-only logic, grouped by purpose:
-  - `backend/db/` — Prisma client + all query functions.
-  - `backend/llm/` — everything that calls Claude: vacancy analysis,
-    the profile interview, resume generation, the English test, the
-    shared tool-use helper, and their prompts.
-  - `backend/resume.ts`, `backend/english.ts` — zod schemas plus the pure
-    checks that don't need the LLM (unsupported-skill check, quiz scoring);
-    `backend/resumeService.ts` glues resume generation to the DB.
-  - `backend/scraping.ts` — the `SCRAPING_ENABLED` switch.
-  - `backend/sources/` — job-source adapters, the UI-configured source kinds
-    (`configured.ts`) and the shared polite HTTP client.
-  - `backend/ingest/` — dedup insert into the database.
-  - `backend/helpers/` — pure functions pulled out of the files above.
-  - `backend/pipeline.ts`, `backend/filter.ts`, `backend/profile.ts` —
-    the orchestrator, the rule filter, and the seed profile data; each
-    is its own single-purpose concern, not part of a bigger cluster.
-- `frontend/` — client-only logic: React hooks (`frontend/hooks/`) and
-  browser-side helpers (`frontend/helpers/`: localStorage, constants,
-  relative-time formatting). UI components live in
-  `frontend/components/`.
-- `types/` — shared type contracts (`JobApplication`, `Vacancy`,
-  `CandidateProfile`, ...) imported by both `backend/` and `frontend/`.
-- `scripts/` — manual CLI entry points (`ingest:once`, `analyze:once`).
-- `docs/` — the original feature plan (historical).
-- `prisma/` — schema and migrations (kept at the root; the Prisma CLI
-  expects it there).
+```
+app/            Next.js routing only: pages and API route handlers
+backend/        server-only code, one folder per feature
+  applications/   repository.ts
+  auth/           session.ts — APP_PASSWORD sessions (used by middleware.ts)
+  english/        assessment.ts, llm.ts, prompts.ts, repository.ts
+  profile/        schema.ts, seed.ts, gaps.ts, github.ts, repository.ts
+    interview/      interview.ts, prompts.ts
+  resume/         content.ts, generate.ts, prompts.ts, service.ts, repository.ts
+  vacancies/      repository.ts, promotionNotes.ts
+    analysis/       analyze.ts, prompts.ts — LLM triage and deep match analysis
+    details/        extract.ts, prompt.ts — fields of a pasted vacancy
+    filter/         filter.ts, rules.ts — the free rule-based pre-filter
+    pipeline/       stages.ts, run.ts, upsert.ts, scraping.ts, repository.ts
+    sources/        adapters, configured.ts, the polite HTTP client, repository.ts
+      parsing/        pure normalizers for ATS APIs, feeds and JSON-LD
+  shared/         infrastructure used by several features
+    db/             prisma.ts — the Prisma client
+    llm/            callTool.ts, untrustedData.ts
+    http/           userAgent.ts
+frontend/       client-only code: components/, hooks/, helpers/
+types/          type contracts shared by backend/ and frontend/
+middleware.ts   password protection for every page and API route
+scripts/        manual CLI entry points (ingest:once, analyze:once)
+prisma/         schema and migrations (the Prisma CLI expects them at the root)
+docs/           the original feature plan (historical)
+```
 
-Imports across these boundaries use the `@/` path alias (e.g.
-`@/backend/db`, `@/frontend/hooks/useVacancies`, `@/types`) instead of
-relative paths, configured in `tsconfig.json` and mirrored in
-`vitest.config.ts`.
+How the backend is organized:
+
+- **By feature, not by technical layer.** Everything about one feature — its
+  schema, database access, LLM call and prompt — sits in one folder, so a
+  change to the resume touches `backend/resume/` and nothing else.
+- **The same file names in every feature:** `repository.ts` is the only
+  place that talks to the database, `prompts.ts` holds prompt text, and
+  `schema.ts` / `content.ts` / `assessment.ts` hold zod schemas and pure
+  logic that need neither the database nor the LLM.
+- **`shared/` has no feature logic** — only the Prisma client, the
+  structured-output LLM helper and the outgoing User-Agent.
+- **`app/` stays thin:** route handlers parse the request and call
+  `backend/`; pages only compose `frontend/` components. Pages never import
+  `backend/` (lint error), and neither do `frontend/` files.
+- Tests sit next to the file they test (`*.test.ts`).
+
+Imports of a file in the same folder (or below it) are relative
+(`./repository`); everything else goes through the `@/` path alias (e.g.
+`@/backend/resume/service`, `@/frontend/hooks/useVacancies`, `@/types`). The alias is configured in
+`tsconfig.json` and mirrored in `vitest.config.ts`.
 
 ## License
 

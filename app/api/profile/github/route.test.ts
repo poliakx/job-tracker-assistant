@@ -6,16 +6,16 @@ const getRepoDetails = vi.fn()
 const extractProfile = vi.fn()
 const getSavedProfile = vi.fn()
 
-vi.mock('@/backend/github', async importOriginal => ({
-  ...(await importOriginal<typeof import('@/backend/github')>()),
+vi.mock('@/backend/profile/github', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/backend/profile/github')>()),
   listRepos,
   getRepoDetails,
 }))
-vi.mock('@/backend/llm/interview', () => ({ extractProfile }))
-vi.mock('@/backend/db', () => ({ getSavedProfile }))
+vi.mock('@/backend/profile/interview/interview', () => ({ extractProfile }))
+vi.mock('@/backend/profile/repository', () => ({ getSavedProfile }))
 
 const { GET, POST } = await import('./route')
-const { GithubError } = await import('@/backend/github')
+const { GithubError } = await import('@/backend/profile/github')
 
 const contact = { fullName: '', email: '', phone: '', linkedin: '', github: 'https://github.com/octocat', portfolio: '' }
 const saved = { level: 'Junior', projects: [], contact }

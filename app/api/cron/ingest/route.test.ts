@@ -9,8 +9,8 @@ class PipelineRunError extends Error {
 const runPipeline = vi.fn()
 const sources = [{ name: 'example', label: 'example.com' }]
 
-vi.mock('@/backend/runPipeline', () => ({ runPipeline, PipelineRunError }))
-vi.mock('@/backend/sources', () => ({ getSources: async () => sources }))
+vi.mock('@/backend/vacancies/pipeline/run', () => ({ runPipeline, PipelineRunError }))
+vi.mock('@/backend/vacancies/sources', () => ({ getSources: async () => sources }))
 
 const { POST } = await import('./route')
 

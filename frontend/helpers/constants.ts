@@ -31,7 +31,7 @@ export const STATUS_LABEL: Record<ApplicationStatus, string> = STATUS_OPTIONS.re
 export const NO_ANSWER_AFTER_DAYS = 7
 
 // Kinds of job source that can be added on /sources (the backend checks
-// them again in backend/sources/configured.ts). `docsUrl` is the API's own
+// them again in backend/vacancies/sources/configured.ts). `docsUrl` is the API's own
 // documentation — a sensible default for the terms link, which the user
 // still has to read and confirm.
 export const SOURCE_KIND_OPTIONS: {

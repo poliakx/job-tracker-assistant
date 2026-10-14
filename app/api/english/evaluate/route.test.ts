@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const createEnglishAssessment = vi.fn()
 const evaluateEnglish = vi.fn()
 
-vi.mock('@/backend/db', () => ({ createEnglishAssessment }))
-vi.mock('@/backend/llm/english', () => ({ evaluateEnglish }))
+vi.mock('@/backend/english/repository', () => ({ createEnglishAssessment }))
+vi.mock('@/backend/english/llm', () => ({ evaluateEnglish }))
 
 const { POST } = await import('./route')
 

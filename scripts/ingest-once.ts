@@ -2,9 +2,9 @@
 // scheduled endpoint (Phase 6).
 // Usage: npm run ingest:once              (every enabled source)
 //        npm run ingest:once -- <name>    (one source, by its name)
-import prisma from '@/backend/db/prisma'
-import { runFilter, runIngest } from '@/backend/pipeline'
-import { findSource, getSources } from '@/backend/sources'
+import prisma from '@/backend/shared/db/prisma'
+import { runFilter, runIngest } from '@/backend/vacancies/pipeline/stages'
+import { findSource, getSources } from '@/backend/vacancies/sources'
 
 async function main() {
   const only = process.argv[2]

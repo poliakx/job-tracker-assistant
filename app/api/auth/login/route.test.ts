@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SESSION_COOKIE, verifySessionToken } from '@/backend/auth'
+import { SESSION_COOKIE, verifySessionToken } from '@/backend/auth/session'
 
 const { POST } = await import('./route')
 

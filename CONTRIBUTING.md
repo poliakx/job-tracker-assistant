@@ -13,7 +13,7 @@ without code. Check that first. A code adapter is only for a site that
 offers its own API or structured data in some other format.
 
 If a generic format is missing (another applicant tracking system's
-public API, say), add it as a new kind in `backend/sources/configured.ts`
+public API, say), add it as a new kind in `backend/vacancies/sources/configured.ts`
 rather than as a one-off adapter. That way everyone can use it.
 
 ## Rules for any source
@@ -41,27 +41,27 @@ these hold:
    ```
    It is shown on `/sources`, so whoever runs the app can see why each
    source is there.
-4. **All requests go through `createPoliteClient`** (`backend/sources/http.ts`).
+4. **All requests go through `createPoliteClient`** (`backend/vacancies/sources/http.ts`).
    It enforces `robots.txt`, an honest User-Agent with a contact address,
    rate limits and bounded retries. Calling `fetch` directly under
-   `backend/sources/` fails lint.
+   `backend/vacancies/sources/` fails lint.
 5. **Fixtures contain made-up content.** Test fixtures in
-   `backend/sources/__fixtures__/` copy the *shape* of real responses but
+   `backend/vacancies/sources/__fixtures__/` copy the *shape* of real responses but
    never a site's actual listings or anyone's personal data.
 6. **Only job postings.** Don't collect personal data about recruiters or
    applicants beyond what the posting itself contains.
 
 ## Adding a code adapter
 
-Follow the checklist at the top of `backend/sources/index.ts`. In short:
+Follow the checklist at the top of `backend/vacancies/sources/index.ts`. In short:
 
 1. Inspect the real responses and prefer structured data (a public API,
-   `__NEXT_DATA__`, JSON-LD). See `backend/sources/html.ts`.
-2. Create `backend/sources/<name>.ts` implementing `VacancySource`,
+   `__NEXT_DATA__`, JSON-LD). See `backend/vacancies/sources/html.ts`.
+2. Create `backend/vacancies/sources/<name>.ts` implementing `VacancySource`,
    including `legal`. Parse responses with zod.
-3. Put pure normalizers in `backend/helpers/` and test them against
+3. Put pure normalizers in `backend/vacancies/sources/parsing/` and test them against
    made-up fixtures.
-4. Append the adapter to `allSources` in `backend/sources/index.ts`.
+4. Append the adapter to `allSources` in `backend/vacancies/sources/index.ts`.
 
 ## Checks
 

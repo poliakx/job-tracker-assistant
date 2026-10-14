@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { profileCompleteness } from './profileCompleteness'
-import { candidateProfile } from '@/backend/profile'
+import { candidateProfile } from '@/backend/profile/seed'
 
 function missing(profile: typeof candidateProfile) {
   return profileCompleteness(profile)

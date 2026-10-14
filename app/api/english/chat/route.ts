@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { englishConversationStep } from '@/backend/llm/english'
-import type { LlmMessage } from '@/backend/llm/llmTool'
+import { englishConversationStep } from '@/backend/english/llm'
+import type { LlmMessage } from '@/backend/shared/llm/callTool'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSources } from '@/backend/sources'
-import { PipelineRunError, runPipeline } from '@/backend/runPipeline'
-import { SCRAPING_DISABLED_ERROR, isScrapingEnabled } from '@/backend/scraping'
+import { getSources } from '@/backend/vacancies/sources'
+import { PipelineRunError, runPipeline } from '@/backend/vacancies/pipeline/run'
+import { SCRAPING_DISABLED_ERROR, isScrapingEnabled } from '@/backend/vacancies/pipeline/scraping'
 
 // Cron routes must not be statically optimized — every invocation needs to
 // actually run.

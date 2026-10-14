@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authMode, SESSION_COOKIE, verifySessionToken } from '@/backend/auth'
+import { authMode, SESSION_COOKIE, verifySessionToken } from '@/backend/auth/session'
 
 // Reachable without signing in: the sign-in page and its API.
 const PUBLIC_PATHS = new Set(['/login', '/api/auth/login', '/api/auth/logout'])
 
 // Every page and API route needs a session when APP_PASSWORD is set (see
-// backend/auth.ts). Pages redirect to /login; API routes answer 401.
+// backend/auth/session.ts). Pages redirect to /login; API routes answer 401.
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next()
