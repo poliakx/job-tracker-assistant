@@ -14,7 +14,7 @@ import {
   buildUpdateInterviewSystemPrompt,
 } from './prompts/interview'
 import { callTool, type LlmMessage, type ToolCallOutcome } from './llmTool'
-import type { CandidateProfile } from '@/types'
+import type { CandidateProfile, EnglishAssessmentResult } from '@/types'
 
 export const InterviewStepSchema = z.object({
   message: z.string(),
@@ -115,9 +115,13 @@ const PROFILE_INPUT_SCHEMA: Anthropic.Tool.InputSchema = {
           description: { type: 'string' },
           achievements: STRING_LIST,
           tech: STRING_LIST,
-          url: { type: 'string' },
+          url: { type: 'string', description: 'The main link: the live demo, or the main repository.' },
+          links: {
+            ...STRING_LIST,
+            description: 'Any further links to this same project, e.g. the second repository when the frontend and backend live in separate repos.',
+          },
         },
-        required: ['name', 'kind', 'role', 'description', 'achievements', 'tech', 'url'],
+        required: ['name', 'kind', 'role', 'description', 'achievements', 'tech', 'url', 'links'],
       },
     },
     education: {
@@ -182,16 +186,18 @@ const PROFILE_INPUT_SCHEMA: Anthropic.Tool.InputSchema = {
 // past "message" text as assistant turns). Empty on the very first call —
 // a synthetic starter turn kicks Claude off since the Messages API requires
 // the first message to have role "user". Pass `existing` to run a follow-up
-// interview that fills gaps in an already-saved profile.
+// interview that fills gaps in an already-saved profile (and `english`, the
+// latest English test result, so it can point out a mismatch with it).
 export async function interviewStep(
   messages: LlmMessage[],
   existing?: CandidateProfile,
+  english: EnglishAssessmentResult | null = null,
   model: string = process.env.ANALYSIS_MODEL_DEEP ?? 'claude-sonnet-5'
 ): Promise<ToolCallOutcome<InterviewStepResult>> {
   const effectiveMessages: LlmMessage[] = messages.length > 0 ? messages : [{ role: 'user', content: "Let's start." }]
   return callTool({
     model,
-    systemPrompt: existing ? buildUpdateInterviewSystemPrompt(existing) : INTERVIEW_SYSTEM_PROMPT,
+    systemPrompt: existing ? buildUpdateInterviewSystemPrompt(existing, english) : INTERVIEW_SYSTEM_PROMPT,
     messages: effectiveMessages,
     toolName: 'submit_interview_step',
     toolDescription: 'Submit your next message to the candidate and whether the interview is complete.',

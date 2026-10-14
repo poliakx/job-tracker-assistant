@@ -6,7 +6,7 @@ const MIN_LENGTH = 50
 // One box: paste the whole posting. Title, company, location and link are
 // pulled out of it on the server; the full text is what the match is
 // scored against.
-export default function AddVacancyForm({ onSubmit, onCancel }: { onSubmit: (text: string) => Promise<void>; onCancel: () => void }) {
+export default function AddVacancyForm({ onSubmit, onCancel }: { onSubmit: (text: string) => Promise<void>; onCancel?: () => void }) {
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,9 +48,11 @@ export default function AddVacancyForm({ onSubmit, onCancel }: { onSubmit: (text
         >
           {submitting ? 'Adding…' : 'Add and analyze'}
         </button>
-        <button type="button" onClick={onCancel} className="px-3 py-2 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">
-          Cancel
-        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="px-3 py-2 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   )

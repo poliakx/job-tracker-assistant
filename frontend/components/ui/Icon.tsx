@@ -11,6 +11,11 @@ const ICON_PATHS = {
   globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18',
   plus: 'M12 5v14M5 12h14',
   rss: 'M5 11a8 8 0 0 1 8 8M5 5a14 14 0 0 1 14 14M6 19h.01',
+  check: 'M20 6L9 17l-5-5',
+  alert: 'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  arrowUp: 'M12 19V5M5 12l7-7 7 7',
+  refresh: 'M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5',
+  external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
 }
 
 export type IconName = keyof typeof ICON_PATHS

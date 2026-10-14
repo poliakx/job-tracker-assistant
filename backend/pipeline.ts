@@ -8,6 +8,7 @@ import { upsertVacancies } from './ingest/upsert'
 import {
   claimVacancyAnalysis,
   countAnalyzedSince,
+  deferVacancyAnalysis,
   getActiveProfile,
   getVacanciesPendingAnalysis,
   getVacanciesPendingFilter,
@@ -107,13 +108,15 @@ export async function runAnalyze(batchSize: number, onResult?: (outcome: Analyze
 
     if (!triage.ok) {
       errors.push({ vacancyId: vacancy.id, stage: 'triage', message: triage.error })
+      await deferVacancyAnalysis(vacancy.id)
       onResult?.({ vacancy: vacancyInfo, triageError: triage.error })
       continue
     }
     if (!triage.result.worthDeepAnalysis) {
       // Record the decision (fitScore stays null) so this vacancy isn't
       // re-triaged on every future run — see getVacanciesPendingAnalysis.
-      // Also move it to DISMISSED: the triage prompt is explicitly biased
+      // Also move it to DISMISSED (unless the owner already shortlisted it —
+      // claimVacancyAnalysis only changes a NEW vacancy's status): the triage prompt is explicitly biased
       // lenient ("prefer worthDeepAnalysis: true" — see
       // backend/prompts/analyze.ts), so a "no" here is a real signal, not a
       // coin flip. Leaving status at NEW forever would otherwise clutter
@@ -133,6 +136,7 @@ export async function runAnalyze(batchSize: number, onResult?: (outcome: Analyze
 
     if (!deep.ok) {
       errors.push({ vacancyId: vacancy.id, stage: 'deep', message: deep.error })
+      await deferVacancyAnalysis(vacancy.id)
       onResult?.({ vacancy: vacancyInfo, triageResult: triage.result, deepError: deep.error })
       continue
     }

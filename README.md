@@ -19,7 +19,7 @@ English and score how well you fit a vacancy.
   generated only from the profile, downloaded as PDF via the browser's
   print dialog. Contact details come from a form, never from the LLM.
   Skills the profile doesn't back up are flagged.
-- **Vacancy match** (`/vacancies`) — paste a vacancy in, get an honest
+- **Vacancy match** (`/vacancies/check`) — paste a vacancy in, get an honest
   fit score, what to close to raise it, and (`/resume/[vacancyId]`) a
   resume tailored to it.
 - **English level** (`/english`) — a quiz (scored in code), two writing

@@ -10,7 +10,7 @@ describe('formatProfile', () => {
       workExperience: [
         { title: 'Backend Intern', company: 'Acme', location: '', kind: 'INTERNSHIP', startDate: '03.2024', endDate: '06.2024', description: 'APIs', achievements: [], tech: [] },
       ],
-      projects: [{ name: 'Tracker', kind: 'PERSONAL', role: 'solo', description: 'Job tracker', achievements: [], tech: ['Next.js'], url: '' }],
+      projects: [{ name: 'Tracker', kind: 'PERSONAL', role: 'solo', description: 'Job tracker', achievements: [], tech: ['Next.js'], url: '', links: [] }],
     })
     expect(text).toContain('Backend Intern at Acme [internship] (03.2024 – 06.2024)')
     expect(text).toContain('Tracker [personal project, role: solo]')

@@ -25,6 +25,13 @@ function applyAutoNoAnswer(apps: JobApplication[]) {
   return { next, changed }
 }
 
+// A 4xx means the server is up and refused the data — saving it to
+// localStorage instead would only hide the problem until the next reload.
+// The localStorage fallback is for when the API can't be reached at all.
+function isRejected(res: Response) {
+  return res.status >= 400 && res.status < 500
+}
+
 export function useApplications() {
   const [applications, setApplications] = useState<JobApplication[]>([])
 
@@ -72,6 +79,7 @@ export function useApplications() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+      if (isRejected(res)) return console.error('application rejected by the server:', await res.text())
       if (!res.ok) throw new Error('api create failed')
       const created = await res.json()
       setApplications(prev => [created, ...prev].sort((a, b) => (b.appliedDate > a.appliedDate ? 1 : -1)))
@@ -99,6 +107,7 @@ export function useApplications() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...patch }),
       })
+      if (isRejected(res)) return console.error('update rejected by the server:', await res.text())
       if (!res.ok) throw new Error('api update failed')
       const updated = await res.json()
       setApplications(prev => prev.map(a => (a.id === id ? updated : a)).sort((a, b) => (b.appliedDate > a.appliedDate ? 1 : -1)))

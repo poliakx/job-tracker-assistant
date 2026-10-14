@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import Card from '@/frontend/components/ui/Card'
 import Panel from '@/frontend/components/dashboard/Panel'
 import ContactForm from '@/frontend/components/profile/ContactForm'
+import AddDetailsForm from '@/frontend/components/profile/AddDetailsForm'
+import GithubImport from '@/frontend/components/profile/GithubImport'
 import ProfileOverview, { CompletenessList } from '@/frontend/components/profile/ProfileOverview'
 import { profileCompleteness } from '@/frontend/helpers/profileCompleteness'
 import { CandidateProfile, ContactInfo } from '@/types'
@@ -214,6 +216,17 @@ export default function ProfilePage() {
     }
   }
 
+  // Details typed in by hand or imported from GitHub skip the chat and go
+  // straight to review.
+  function handleDetailsExtracted(profile: CandidateProfile) {
+    clearInterviewDraft()
+    setMessages([])
+    setMode('update')
+    setProfileJson(JSON.stringify(profile, null, 2))
+    setError(null)
+    setPhase('review')
+  }
+
   async function handleSaveContact(contact: ContactInfo) {
     if (!saved) return
     setSaved(await putProfile({ ...saved, contact }))
@@ -248,6 +261,22 @@ export default function ProfilePage() {
           <div className="lg:col-span-2 space-y-6">
             <Panel title="Contact details" description="Printed on your resume exactly as entered here.">
               <ContactForm initial={saved.contact} onSave={handleSaveContact} />
+            </Panel>
+            <Panel
+              title="Add details yourself"
+              description="Write anything new or missing in your own words. It's merged into your profile — and from there into your resume — after you review it."
+            >
+              <AddDetailsForm onExtracted={handleDetailsExtracted} />
+            </Panel>
+            <Panel
+              title="Import projects from GitHub"
+              description="Pick repositories to add as projects. Their description, languages and README are read; you review the result before it's saved."
+            >
+              <GithubImport
+                initialUser={saved.contact.github}
+                existingProjectUrls={saved.projects.flatMap(p => [p.url, ...p.links])}
+                onExtracted={handleDetailsExtracted}
+              />
             </Panel>
             <Panel title="Your profile" description="Built from the interview. The match analysis and resume use only this.">
               {editingJson ? (
@@ -385,7 +414,7 @@ export default function ProfilePage() {
       {(phase === 'review' || phase === 'saving') && (
         <Card>
           <p className="text-sm text-gray-600 mb-2">
-            Here&rsquo;s what the interview came away with. Check it over — especially that every job has the right
+            Here&rsquo;s your profile with the new information. Check it over — especially that every job has the right
             &ldquo;kind&rdquo; (commercial / internship / …) and that nothing is overstated — and edit the JSON directly
             if anything&rsquo;s off, then save.
           </p>
@@ -405,15 +434,30 @@ export default function ProfilePage() {
             >
               {phase === 'saving' ? 'Saving…' : 'Save profile'}
             </button>
-            <button
-              onClick={() => {
-                setPhase('chat')
-                setError(null)
-              }}
-              className="px-3 py-2 border rounded text-sm"
-            >
-              Back to interview
-            </button>
+            {messages.length > 0 ? (
+              <button
+                onClick={() => {
+                  setPhase('chat')
+                  setError(null)
+                }}
+                className="px-3 py-2 border rounded text-sm"
+              >
+                Back to interview
+              </button>
+            ) : (
+              // Came from "Add details yourself" or the GitHub import — there's no
+              // interview to go back to.
+              <button
+                onClick={() => {
+                  setError(null)
+                  setPhase('overview')
+                }}
+                disabled={phase === 'saving'}
+                className="px-3 py-2 border rounded text-sm disabled:opacity-50"
+              >
+                Discard
+              </button>
+            )}
           </div>
         </Card>
       )}

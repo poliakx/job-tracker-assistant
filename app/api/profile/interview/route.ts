@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { interviewStep } from '@/backend/llm/interview'
-import { getSavedProfile } from '@/backend/db'
+import { getLatestEnglishResult, getSavedProfile } from '@/backend/db'
 import type { LlmMessage } from '@/backend/llm/llmTool'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,11 @@ export async function POST(req: NextRequest) {
     const messages: LlmMessage[] = Array.isArray(body?.messages) ? body.messages : []
     const existing = body?.mode === 'update' ? (await getSavedProfile()) ?? undefined : undefined
 
-    const outcome = await interviewStep(messages, existing)
+    // A follow-up interview also gets the latest English test result, so it
+    // can point out when it disagrees with the level in the profile.
+    const outcome = existing
+      ? await interviewStep(messages, existing, await getLatestEnglishResult())
+      : await interviewStep(messages, existing)
     if (!outcome.ok) {
       return NextResponse.json({ error: outcome.error }, { status: 502 })
     }

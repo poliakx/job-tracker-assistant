@@ -1,6 +1,6 @@
 "use client"
 import React, { useMemo, useState } from 'react'
-import { PipelineRun, Vacancy, VacancyStatus } from '@/types'
+import { PipelineRun, VacancySummary as Vacancy, VacancyStatus } from '@/types'
 import VacancyCard from './VacancyCard'
 
 const TABS: { value: VacancyStatus; label: string }[] = [
@@ -11,7 +11,7 @@ const TABS: { value: VacancyStatus; label: string }[] = [
 ]
 
 const EMPTY_TEXT: Record<VacancyStatus, string> = {
-  NEW: 'No vacancies yet. Add one to see how well you match it.',
+  NEW: 'No new vacancies from your sources yet.',
   SHORTLISTED: 'Nothing shortlisted yet.',
   APPLIED: 'No vacancies added to applications yet.',
   DISMISSED: 'Nothing dismissed.',

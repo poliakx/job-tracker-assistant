@@ -31,20 +31,36 @@ export async function callTool<T>(params: {
   schema: z.ZodType<T>
   maxTokens: number
 }): Promise<ToolCallOutcome<T>> {
-  const anthropic = new Anthropic({ apiKey: requireApiKey() })
+  let anthropic: Anthropic
+  try {
+    anthropic = new Anthropic({ apiKey: requireApiKey() })
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e), usage: { inputTokens: 0, outputTokens: 0 } }
+  }
   const totalUsage: Usage = { inputTokens: 0, outputTokens: 0 }
   let lastError = 'unknown error'
 
   // Retry once on a malformed/invalid response (rule: never crash the run).
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const response = await anthropic.messages.create({
-      model: params.model,
-      max_tokens: params.maxTokens,
-      system: params.systemPrompt,
-      messages: params.messages,
-      tools: [{ name: params.toolName, description: params.toolDescription, input_schema: params.inputSchema }],
-      tool_choice: { type: 'tool', name: params.toolName },
-    })
+    let response: Anthropic.Message
+    try {
+      response = await anthropic.messages.create({
+        model: params.model,
+        max_tokens: params.maxTokens,
+        system: params.systemPrompt,
+        messages: params.messages,
+        tools: [{ name: params.toolName, description: params.toolDescription, input_schema: params.inputSchema }],
+        tool_choice: { type: 'tool', name: params.toolName },
+      })
+    } catch (e) {
+      // Network failures, rate limits and 5xx are already retried by the SDK
+      // (maxRetries); whatever still gets through is reported, not thrown, so
+      // one failed call can't take down a whole pipeline run or request.
+      const status = e instanceof Error && 'status' in e && typeof e.status === 'number' ? e.status : null
+      const message = e instanceof Error ? e.message : String(e)
+      const detail = status ? `HTTP ${status}: ${message}` : message
+      return { ok: false, error: `API call failed — ${detail}`, usage: totalUsage }
+    }
 
     totalUsage.inputTokens += response.usage.input_tokens
     totalUsage.outputTokens += response.usage.output_tokens

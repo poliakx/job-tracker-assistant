@@ -11,7 +11,10 @@ export interface CompletenessItem {
 
 export function profileCompleteness(p: CandidateProfile): CompletenessItem[] {
   const undatedJobs = p.workExperience.filter(w => !w.startDate).length
-  const thinProjects = p.projects.filter(pr => !pr.description || pr.tech.length === 0).length
+  // Same bar as backend/profileGaps.ts, which the follow-up interview asks
+  // about: under two concrete achievements, a project gets one generic
+  // resume line.
+  const thinProjects = p.projects.filter(pr => !pr.description || pr.tech.length === 0 || pr.achievements.length < 2).length
   return [
     { ok: !!p.contact.fullName && !!p.contact.email, label: 'Name and email', fix: 'contact' },
     { ok: !!p.contact.github || !!p.contact.linkedin, label: 'GitHub or LinkedIn link', fix: 'contact' },
@@ -20,7 +23,7 @@ export function profileCompleteness(p: CandidateProfile): CompletenessItem[] {
     { ok: undatedJobs === 0, label: undatedJobs ? `Dates for ${undatedJobs} job(s)` : 'Dates for every job', fix: 'interview' },
     {
       ok: thinProjects === 0,
-      label: thinProjects ? `Description and tech for ${thinProjects} project(s)` : 'Every project described',
+      label: thinProjects ? `More detail for ${thinProjects} project(s)` : 'Every project described',
       fix: 'interview',
     },
     { ok: p.education.length > 0, label: 'Education', fix: 'interview' },

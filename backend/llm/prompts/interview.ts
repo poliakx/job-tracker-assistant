@@ -1,7 +1,8 @@
 // Named prompt constants/builders for backend/interview.ts. Unlike
 // backend/prompts/analyze.ts, this data comes from the owner themselves, not an
 // external job posting — no untrusted-data notice needed here.
-import type { CandidateProfile } from '@/types'
+import type { CandidateProfile, EnglishAssessmentResult } from '@/types'
+import { findProfileGaps } from '../../profileGaps'
 
 const INTERVIEW_TOPICS = `Cover, roughly in this order, one question (or a tight couple of related ones) at a time — a \
 real conversation, not a form dumped on them at once:
@@ -50,14 +51,24 @@ ${INTERVIEW_TOPICS}`
 
 // Same interview, but starting from an already-saved profile: fill gaps and
 // capture what changed instead of re-asking everything.
-export function buildUpdateInterviewSystemPrompt(profile: CandidateProfile): string {
+export function buildUpdateInterviewSystemPrompt(profile: CandidateProfile, english: EnglishAssessmentResult | null = null): string {
+  const gaps = findProfileGaps(profile, english)
+  const gapList =
+    gaps.length > 0
+      ? `Gaps found in the saved profile — go through every one of them, one at a time, before anything else:\n\n${gaps
+          .map((g, i) => `${i + 1}. ${g}`)
+          .join('\n')}`
+      : 'No obvious gaps were found in the saved profile.'
+
   return `You are continuing a structured interview for a job-search candidate profile. The candidate already has \
 a saved profile (below). Your job now:
 
-- Start by briefly saying what looks thin or missing for a strong resume (e.g. a project with no description of \
-  what it does, a job with no dates, no education listed, no language levels) and ask whether anything has \
-  changed since (new job, new project, new skills).
-- Fill those gaps and capture the changes. Do not re-ask things the profile already covers well.
+- Start by briefly saying what looks thin or missing for a strong resume (the gaps listed below) and ask whether \
+  anything has changed since (new job, new project, new skills).
+- Fill those gaps and capture the changes. Do not re-ask things the profile already covers well. Don't mark the \
+  interview done while a gap below is still unanswered — unless the candidate says they have nothing to add for it.
+
+${gapList}
 
 Saved profile:
 ${JSON.stringify(stripContact(profile), null, 2)}
@@ -76,6 +87,10 @@ const EXTRACT_RULES = `Be strictly faithful to what was actually said:
   workExperience. This is the single most important rule: the owner explicitly does not want their background \
   exaggerated.
 - achievements: only concrete things the candidate described. No invented metrics.
+- One application is one project, even when it lives in several repositories: a frontend and a backend (client/ \
+  server, web/api, app-ui/app-backend, …) of the same app go into a single projects entry — the main link in url, \
+  the others in links, the tech of all parts combined. When the saved profile already lists such parts as separate \
+  projects, merge them into one. Only merge parts of the same product, never two different apps.
 - In the "experience" narrative (a short paragraph), keep commercial work, projects, internships and self-study \
   clearly distinguishable.
 - For conflictingStackKeywords, use the languages/frameworks the candidate explicitly said they do NOT know. Do \

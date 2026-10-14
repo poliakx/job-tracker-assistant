@@ -1,15 +1,18 @@
 "use client"
 
 import { useCallback, useEffect, useState } from 'react'
-import { PipelineRun, Vacancy } from '@/types'
+import { PipelineRun, Vacancy, VacancySummary } from '@/types'
 
 // Separate from useApplications on purpose (per docs/PLAN.md). No localStorage
 // fallback here the way there is for applications: a vacancy is only
 // useful with its server-side analysis, so if the API is unreachable
 // that's a real error to show, not something to paper over.
 
-export function useVacancies() {
-  const [vacancies, setVacancies] = useState<Vacancy[]>([])
+// manual: true loads only pasted-in vacancies, false only the ones the
+// sources found, omitted both. The latest pipeline run is only fetched for
+// found ones — it's what marks a vacancy as fresh in the list.
+export function useVacancies({ manual }: { manual?: boolean } = {}) {
+  const [vacancies, setVacancies] = useState<VacancySummary[]>([])
   const [lastRun, setLastRun] = useState<PipelineRun | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -18,16 +21,19 @@ export function useVacancies() {
     setLoading(true)
     setError(null)
     try {
-      const [vacanciesRes, runRes] = await Promise.all([fetch('/api/vacancies'), fetch('/api/pipeline-runs/latest')])
+      const [vacanciesRes, runRes] = await Promise.all([
+        fetch(manual === undefined ? '/api/vacancies' : `/api/vacancies?manual=${manual}`),
+        manual === false ? fetch('/api/pipeline-runs/latest') : null,
+      ])
       if (!vacanciesRes.ok) throw new Error('failed to load vacancies')
       setVacancies(await vacanciesRes.json())
-      setLastRun(runRes.ok ? await runRes.json() : null)
+      setLastRun(runRes?.ok ? await runRes.json() : null)
     } catch (e) {
       setError('Could not load vacancies — is the app connected to the database?')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [manual])
 
   useEffect(() => {
     load()

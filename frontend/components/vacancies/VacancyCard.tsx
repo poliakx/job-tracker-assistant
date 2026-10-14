@@ -1,7 +1,7 @@
 "use client"
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { Vacancy } from '@/types'
+import { VacancySummary as Vacancy } from '@/types'
 import { asDeepAnalysis, asTriageOnlyReason, type DeepAnalysisView } from '@/frontend/helpers/vacancyAnalysis'
 import { timeAgo } from '@/frontend/helpers/timeAgo'
 

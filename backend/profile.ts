@@ -109,6 +109,7 @@ const ProjectEntrySchema = z.object({
   achievements: strList,
   tech: strList,
   url: str,
+  links: strList,
 })
 
 const EducationEntrySchema = z.object({

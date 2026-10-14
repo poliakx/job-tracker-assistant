@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { findUnsupportedSkills } from './resume'
-import { candidateProfile } from './profile'
+import { findUnsupportedSkills, ResumeContentSchema } from './resume'
+import { candidateProfile, CandidateProfileSchema } from './profile'
 import type { ResumeContent } from '@/types'
 
 function resume(skills: string[], projectTech: string[] = []): ResumeContent {
@@ -9,7 +9,7 @@ function resume(skills: string[], projectTech: string[] = []): ResumeContent {
     summary: '',
     skills: [{ category: 'All', items: skills }],
     experience: [],
-    projects: [{ name: 'P', url: '', tech: projectTech, bullets: [] }],
+    projects: [{ name: 'P', url: '', links: [], tech: projectTech, bullets: [] }],
     education: [],
     certifications: [],
     languages: [],
@@ -52,5 +52,27 @@ describe('findUnsupportedSkills', () => {
   it('keeps C# and C++ distinct from C', () => {
     const profile = { ...candidateProfile, stack: { ...candidateProfile.stack, alsoKnows: ['C'] } }
     expect(findUnsupportedSkills(resume(['C++']), profile)).toEqual(['C++'])
+  })
+})
+
+// `links` (several repos of one app on one project entry) was added after
+// profiles and resumes were already being saved.
+describe('project links', () => {
+  it('loads a saved profile whose projects have no links', () => {
+    const saved = { ...candidateProfile, projects: [{ name: 'Tracker', kind: 'PERSONAL', url: 'https://github.com/me/tracker' }] }
+    const parsed = CandidateProfileSchema.parse(saved)
+    expect(parsed.projects[0].links).toEqual([])
+  })
+
+  it('keeps every link of a project split into frontend and backend repos', () => {
+    const repos = ['https://github.com/me/shop-api']
+    const saved = { ...candidateProfile, projects: [{ name: 'Shop', kind: 'PERSONAL', url: 'https://github.com/me/shop-web', links: repos }] }
+    expect(CandidateProfileSchema.parse(saved).projects[0].links).toEqual(repos)
+  })
+
+  it('loads a saved resume whose projects have no links', () => {
+    const { projects: _projects, ...rest } = resume([])
+    const parsed = ResumeContentSchema.parse({ ...rest, projects: [{ name: 'P', url: '', tech: [], bullets: [] }] })
+    expect(parsed.projects[0].links).toEqual([])
   })
 })

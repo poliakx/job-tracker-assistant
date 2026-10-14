@@ -146,6 +146,13 @@ export default function ResumeWorkspace({ apiPath }: { apiPath: string }) {
           </div>
         )}
 
+        {resume && (
+          <p className="text-xs text-gray-500 mb-2">
+            Download PDF opens the print dialog: choose &ldquo;Save as PDF&rdquo; and untick &ldquo;Headers and
+            footers&rdquo; under More settings, or the browser prints the date, page title and URL on every page.
+          </p>
+        )}
+
         {editable && (
           <p className="text-xs text-gray-500 mb-2">
             Click any text on the page to change it. These edits are only for this printout — they are not saved, and

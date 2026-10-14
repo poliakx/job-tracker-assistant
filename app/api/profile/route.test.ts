@@ -64,7 +64,8 @@ describe('PUT /api/profile', () => {
       description: 'Job tracker',
       achievements: [],
       tech: ['Next.js'],
-      url: '',
+      url: 'https://github.com/me/tracker-web',
+      links: ['https://github.com/me/tracker-api'],
     }
     await PUT(putRequest({ ...validProfile, projects: [project] }))
     expect(saveProfile.mock.calls[0][0].projects).toEqual([project])

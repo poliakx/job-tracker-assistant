@@ -1,5 +1,5 @@
 import React from 'react'
-import { Vacancy } from '@/types'
+import { VacancySummary as Vacancy } from '@/types'
 import { asDeepAnalysis } from '@/frontend/helpers/vacancyAnalysis'
 import { EmptyNote } from './Panel'
 

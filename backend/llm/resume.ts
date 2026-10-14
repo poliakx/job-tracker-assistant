@@ -47,8 +47,14 @@ const RESUME_INPUT_SCHEMA: Anthropic.Tool.InputSchema = {
           type: 'array',
           items: {
             type: 'object',
-            properties: { name: { type: 'string' }, url: { type: 'string' }, tech: STRING_LIST, bullets: STRING_LIST },
-            required: ['name', 'url', 'tech', 'bullets'],
+            properties: {
+              name: { type: 'string' },
+              url: { type: 'string' },
+              links: { ...STRING_LIST, description: "The project's other links from the profile (e.g. a second repository)." },
+              tech: STRING_LIST,
+              bullets: STRING_LIST,
+            },
+            required: ['name', 'url', 'links', 'tech', 'bullets'],
           },
         },
         education: {

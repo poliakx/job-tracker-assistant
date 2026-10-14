@@ -7,29 +7,48 @@ import { STATUS_OPTIONS, SOURCE_OPTIONS } from '@/frontend/helpers/constants'
 
 type Props = {
   open: boolean
-  initial?: Partial<JobApplication>
+  initial?: Partial<JobApplication> | null
   onClose: () => void
   onSubmit: (payload: any) => void
 }
 
-const defaultVals = {
-  company: '',
-  position: '',
-  jobUrl: '',
-  status: 'applied',
-  source: 'other',
-  appliedDate: new Date().toISOString().slice(0, 10),
-  followUpDate: '',
-  contactPerson: '',
-  notes: '',
+function todayLocal() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export default function ApplicationForm({ open, initial = {}, onClose, onSubmit }: Props) {
-  const [form, setForm] = useState<any>({ ...defaultVals })
+function defaultVals() {
+  return {
+    company: '',
+    position: '',
+    jobUrl: '',
+    status: 'applied',
+    source: 'other',
+    appliedDate: todayLocal(),
+    followUpDate: '',
+    contactPerson: '',
+    notes: '',
+  }
+}
+
+// The form's fields filled from an existing application. The API returns
+// dates as full ISO timestamps and empty fields as null, but a date input
+// only shows "YYYY-MM-DD" and every input needs a string.
+function toFormValues(initial: Partial<JobApplication> | null | undefined) {
+  const values: Record<string, string> = defaultVals()
+  for (const key of Object.keys(values)) {
+    const v = (initial as Record<string, unknown> | null | undefined)?.[key]
+    if (typeof v === 'string') values[key] = key.endsWith('Date') ? v.slice(0, 10) : v
+  }
+  return values
+}
+
+export default function ApplicationForm({ open, initial, onClose, onSubmit }: Props) {
+  const [form, setForm] = useState<any>(defaultVals)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    setForm({ ...defaultVals, ...initial })
+    setForm(toFormValues(initial))
     setErrors({})
   }, [initial, open])
 

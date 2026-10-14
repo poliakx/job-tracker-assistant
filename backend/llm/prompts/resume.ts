@@ -11,7 +11,15 @@ anything you add that isn't in the profile is a lie they'll be caught in during 
   already: an INTERNSHIP reads as an internship ("Backend Developer Intern"), FREELANCE as "(Freelance)", \
   VOLUNTEER as "(Volunteer)".
 - Projects section: the profile's projects. Never present a project as a job. For a TEAM project, make the \
-  candidate's own part clear.
+  candidate's own part clear. Copy each project's url and links as they are.
+- Project name: the product's short name only (e.g. "Inventory Management App") — no qualifiers in parentheses \
+  like "(AI-assisted, Full-Stack)"; say that in a bullet if it matters.
+- Project tech: at most 8 items — the core languages, frameworks, database and test tools. Leave out minor \
+  libraries and tooling (they can still appear under skills).
+- One application is one project entry. If the profile lists the frontend and the backend (client/server, \
+  web/api, …) of the same app as separate projects, present them as a single project: one name, the combined \
+  tech, bullets covering both parts, the first part's url in url and the other's in links. Only merge parts of \
+  the same product, never two different apps.
 - period: "MM.YYYY – MM.YYYY" (or "– Present") built from the profile's dates as given; empty if there are none.
 - Bullets: start with a strong verb, one line each where possible, concrete over generic. At most 4 per job and \
   3 per project. No buzzword filler ("passionate", "hard-working", "team player").

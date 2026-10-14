@@ -5,7 +5,7 @@ import { createVacancy, getVacancies, updateVacancy } from '@/backend/db'
 import { extractVacancyDetails, type VacancyDetails } from '@/backend/llm/vacancyDetails'
 import type { VacancyStatus } from '@/types'
 
-const VALID_STATUSES: VacancyStatus[] = ['NEW', 'SHORTLISTED', 'DISMISSED', 'APPLIED']
+const VALID_STATUSES = ['NEW', 'SHORTLISTED', 'DISMISSED', 'APPLIED'] as const satisfies readonly VacancyStatus[]
 
 // A vacancy the owner pasted in by hand, as one block of text. That text is
 // what the match is scored against, so it has to be the real posting.
@@ -48,8 +48,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/vacancies?status=NEW&minScore=50 — sorted by fitScore desc
-// (unscored vacancies last), both filters optional.
+// GET /api/vacancies?status=NEW&minScore=50&manual=false — sorted by
+// fitScore desc (unscored vacancies last), all filters optional. manual=true
+// is only pasted-in vacancies, manual=false only found ones. Items come
+// without `description`; GET /api/vacancies/:id has it.
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url)
@@ -67,20 +69,34 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const vacancies = await getVacancies({ status: (statusParam as VacancyStatus) ?? undefined, minScore })
+    const manualParam = url.searchParams.get('manual')
+    if (manualParam !== null && manualParam !== 'true' && manualParam !== 'false') {
+      return NextResponse.json({ error: 'invalid manual, expected true or false' }, { status: 400 })
+    }
+    const manual = manualParam === null ? undefined : manualParam === 'true'
+
+    const vacancies = await getVacancies({ status: (statusParam as VacancyStatus) ?? undefined, minScore, manual })
     return NextResponse.json(vacancies)
   } catch (e) {
     return NextResponse.json({ error: 'failed to load' }, { status: 500 })
   }
 }
 
+// Only the status is the owner's to set here; the score, analysis and the
+// application link are written by the analysis and promote endpoints.
+const PatchSchema = z.object({
+  id: z.string().min(1, 'missing id'),
+  status: z.enum(VALID_STATUSES),
+})
+
 // PATCH { id, status } — e.g. Shortlist / Dismiss from the inbox UI (Phase 8).
 export async function PATCH(req: NextRequest) {
+  const parsed = PatchSchema.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'invalid request' }, { status: 400 })
+  }
   try {
-    const body = await req.json()
-    const { id, ...patch } = body
-    if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
-    const updated = await updateVacancy(id, patch)
+    const updated = await updateVacancy(parsed.data.id, { status: parsed.data.status })
     return NextResponse.json(updated)
   } catch (e) {
     return NextResponse.json({ error: 'failed to update' }, { status: 500 })

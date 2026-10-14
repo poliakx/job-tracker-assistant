@@ -27,11 +27,11 @@ describe('profileCompleteness', () => {
       workExperience: [
         { title: 'Dev', company: 'A', location: '', kind: 'INTERNSHIP' as const, startDate: '', endDate: '', description: '', achievements: [], tech: [] },
       ],
-      projects: [{ name: 'P', kind: 'PERSONAL' as const, role: '', description: '', achievements: [], tech: [], url: '' }],
+      projects: [{ name: 'P', kind: 'PERSONAL' as const, role: '', description: '', achievements: [], tech: [], url: '', links: [] }],
     }
     const labels = missing(profile)
     expect(labels).toContain('Dates for 1 job(s)')
-    expect(labels).toContain('Description and tech for 1 project(s)')
+    expect(labels).toContain('More detail for 1 project(s)')
     expect(labels).not.toContain('At least one job or project')
   })
 })

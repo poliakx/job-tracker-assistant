@@ -61,6 +61,10 @@ export interface Vacancy {
   updatedAt: string
 }
 
+// A vacancy as GET /api/vacancies lists it — without the full posting
+// text, which GET /api/vacancies/:id returns.
+export type VacancySummary = Omit<Vacancy, 'description'>
+
 export interface PipelineRun {
   id: string
   startedAt: string
@@ -164,6 +168,9 @@ export interface ProjectEntry {
   achievements: string[]
   tech: string[]
   url: string
+  // Further links to the same project — e.g. the backend repo when `url`
+  // is the frontend one. An app split across repos is still one project.
+  links: string[]
 }
 
 export interface EducationEntry {
@@ -263,7 +270,7 @@ export interface ResumeContent {
   summary: string
   skills: { category: string; items: string[] }[]
   experience: { title: string; company: string; location: string; period: string; bullets: string[] }[]
-  projects: { name: string; url: string; tech: string[]; bullets: string[] }[]
+  projects: { name: string; url: string; links: string[]; tech: string[]; bullets: string[] }[]
   education: { institution: string; degree: string; period: string; details: string }[]
   certifications: string[]
   languages: string[]
@@ -347,4 +354,18 @@ export interface EnglishAssessment {
   result: EnglishAssessmentResult
   quizScore: QuizScore
   createdAt: string
+}
+
+// One of the owner's GitHub repos, as GET /api/profile/github lists it for
+// importing into the profile's projects (backend/github.ts).
+export interface GithubRepo {
+  name: string
+  fullName: string
+  url: string
+  description: string
+  language: string | null
+  topics: string[]
+  stars: number
+  updatedAt: string
+  isPrivate: boolean
 }

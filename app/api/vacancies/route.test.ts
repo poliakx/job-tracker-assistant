@@ -33,13 +33,27 @@ describe('GET /api/vacancies', () => {
     const res = await GET(getRequest())
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual([{ id: 'v1' }])
-    expect(getVacancies).toHaveBeenCalledWith({ status: undefined, minScore: undefined })
+    expect(getVacancies).toHaveBeenCalledWith({ status: undefined, minScore: undefined, manual: undefined })
   })
 
   it('passes status and minScore through to getVacancies', async () => {
     getVacancies.mockResolvedValue([])
     await GET(getRequest('?status=SHORTLISTED&minScore=50'))
-    expect(getVacancies).toHaveBeenCalledWith({ status: 'SHORTLISTED', minScore: 50 })
+    expect(getVacancies).toHaveBeenCalledWith({ status: 'SHORTLISTED', minScore: 50, manual: undefined })
+  })
+
+  it('passes the manual filter through as a boolean', async () => {
+    getVacancies.mockResolvedValue([])
+    await GET(getRequest('?manual=true'))
+    expect(getVacancies).toHaveBeenLastCalledWith({ status: undefined, minScore: undefined, manual: true })
+    await GET(getRequest('?manual=false'))
+    expect(getVacancies).toHaveBeenLastCalledWith({ status: undefined, minScore: undefined, manual: false })
+  })
+
+  it('rejects an invalid manual value with 400', async () => {
+    const res = await GET(getRequest('?manual=yes'))
+    expect(res.status).toBe(400)
+    expect(getVacancies).not.toHaveBeenCalled()
   })
 
   it('rejects an invalid status with 400', async () => {
@@ -71,6 +85,18 @@ describe('PATCH /api/vacancies', () => {
     const res = await PATCH(patchRequest({ id: 'v1', status: 'SHORTLISTED' }))
     expect(res.status).toBe(200)
     expect(updateVacancy).toHaveBeenCalledWith('v1', { status: 'SHORTLISTED' })
+  })
+
+  it('rejects an unknown status with 400', async () => {
+    const res = await PATCH(patchRequest({ id: 'v1', status: 'ARCHIVED' }))
+    expect(res.status).toBe(400)
+    expect(updateVacancy).not.toHaveBeenCalled()
+  })
+
+  it('only passes the status through, never score/analysis/application fields', async () => {
+    updateVacancy.mockResolvedValue({ id: 'v1' })
+    await PATCH(patchRequest({ id: 'v1', status: 'DISMISSED', fitScore: 100, applicationId: 'a1', analysis: {} }))
+    expect(updateVacancy).toHaveBeenCalledWith('v1', { status: 'DISMISSED' })
   })
 })
 

@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const interviewStep = vi.fn()
 const getSavedProfile = vi.fn()
+const getLatestEnglishResult = vi.fn()
 
 vi.mock('@/backend/llm/interview', () => ({ interviewStep }))
-vi.mock('@/backend/db', () => ({ getSavedProfile }))
+vi.mock('@/backend/db', () => ({ getSavedProfile, getLatestEnglishResult }))
 
 const { POST } = await import('./route')
 
@@ -17,6 +18,8 @@ describe('POST /api/profile/interview', () => {
   beforeEach(() => {
     interviewStep.mockReset()
     getSavedProfile.mockReset()
+    getLatestEnglishResult.mockReset()
+    getLatestEnglishResult.mockResolvedValue(null)
   })
 
   it('starts with an empty history when none is given', async () => {
@@ -40,7 +43,17 @@ describe('POST /api/profile/interview', () => {
     getSavedProfile.mockResolvedValue(saved)
     interviewStep.mockResolvedValue({ ok: true, result: { message: 'What changed?', done: false }, usage: {} })
     await POST(makeRequest({ messages: [], mode: 'update' }))
-    expect(interviewStep).toHaveBeenCalledWith([], saved)
+    expect(interviewStep).toHaveBeenCalledWith([], saved, null)
+  })
+
+  it('gives a follow-up interview the latest English test result', async () => {
+    const saved = { level: 'Junior' }
+    const english = { overall: 'A2' }
+    getSavedProfile.mockResolvedValue(saved)
+    getLatestEnglishResult.mockResolvedValue(english)
+    interviewStep.mockResolvedValue({ ok: true, result: { message: 'What changed?', done: false }, usage: {} })
+    await POST(makeRequest({ messages: [], mode: 'update' }))
+    expect(interviewStep).toHaveBeenCalledWith([], saved, english)
   })
 
   it('falls back to a fresh interview in update mode when nothing is saved', async () => {

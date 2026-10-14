@@ -54,7 +54,7 @@ export default function DashboardPage() {
             Add application
           </Link>
           <Link
-            href="/vacancies"
+            href="/vacancies/check"
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-700 text-sm font-medium text-white shadow-sm hover:bg-blue-800 hover:no-underline"
           >
             <Icon name="plus" className="w-4 h-4" />

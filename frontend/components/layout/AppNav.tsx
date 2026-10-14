@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation'
 import Icon, { IconName } from '@/frontend/components/ui/Icon'
 
 // desktopOnly: kept out of the mobile tab bar, which has room for six;
-// /sources is linked from the Vacancies page there instead.
+// /sources and /vacancies/check are linked from the Vacancies page there instead.
 const ITEMS: { href: string; label: string; icon: IconName; desktopOnly?: boolean }[] = [
   { href: '/', label: 'Dashboard', icon: 'home' },
   { href: '/vacancies', label: 'Vacancies', icon: 'search' },
+  { href: '/vacancies/check', label: 'Check vacancy', icon: 'plus', desktopOnly: true },
   { href: '/applications', label: 'Applications', icon: 'list' },
   { href: '/resume', label: 'Resume', icon: 'file' },
   { href: '/english', label: 'English', icon: 'globe' },
@@ -16,8 +17,18 @@ const ITEMS: { href: string; label: string; icon: IconName; desktopOnly?: boolea
   { href: '/sources', label: 'Sources', icon: 'rss', desktopOnly: true },
 ]
 
-function isActive(pathname: string, href: string) {
-  return href === '/' ? pathname === '/' : pathname.startsWith(href)
+const MOBILE_ITEMS = ITEMS.filter(item => !item.desktopOnly)
+
+function matches(pathname: string, href: string) {
+  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
+}
+
+// Only the most specific matching item is active, so /vacancies/check
+// doesn't also light up Vacancies on desktop. On mobile, where Check isn't
+// in the bar, Vacancies stays highlighted.
+function isActive(pathname: string, href: string, items = ITEMS) {
+  if (!matches(pathname, href)) return false
+  return !items.some(other => other.href.length > href.length && matches(pathname, other.href))
 }
 
 // Sidebar on desktop, bottom tab bar on mobile (the app is a PWA, so the
@@ -62,8 +73,8 @@ export default function AppNav() {
       </aside>
 
       <nav className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white grid grid-cols-6">
-        {ITEMS.filter(item => !item.desktopOnly).map(item => {
-          const active = isActive(pathname, item.href)
+        {MOBILE_ITEMS.map(item => {
+          const active = isActive(pathname, item.href, MOBILE_ITEMS)
           return (
             <Link
               key={item.href}

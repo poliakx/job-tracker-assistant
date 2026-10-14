@@ -34,10 +34,19 @@ export async function createApplication(data: Omit<JobApplication, 'id' | 'creat
   })
 }
 
+// Only the editable fields — id, timestamps and the vacancy link are never
+// taken from the patch. An empty optional field clears it.
 export async function updateApplication(id: string, patch: Partial<JobApplication>) {
-  const data: any = { ...patch }
-  if (patch.appliedDate) data.appliedDate = new Date(patch.appliedDate)
-  if (patch.followUpDate) data.followUpDate = new Date(patch.followUpDate as string)
+  const data: Prisma.JobApplicationUpdateInput = {}
+  if (patch.company !== undefined) data.company = patch.company
+  if (patch.position !== undefined) data.position = patch.position
+  if (patch.jobUrl !== undefined) data.jobUrl = patch.jobUrl || null
+  if (patch.status !== undefined) data.status = patch.status
+  if (patch.source !== undefined) data.source = patch.source
+  if (patch.appliedDate !== undefined) data.appliedDate = new Date(patch.appliedDate)
+  if (patch.followUpDate !== undefined) data.followUpDate = patch.followUpDate ? new Date(patch.followUpDate) : null
+  if (patch.contactPerson !== undefined) data.contactPerson = patch.contactPerson || null
+  if (patch.notes !== undefined) data.notes = patch.notes || null
   return await prisma.jobApplication.update({ where: { id }, data })
 }
 
@@ -59,11 +68,23 @@ export async function deleteApplication(id: string) {
 // --- Vacancy -----------------------------------------------------------
 // A vacancy found by the ingestion pipeline. Ranked by fit score once analyzed.
 
-export async function getVacancies(filter: { status?: VacancyStatus; minScore?: number } = {}) {
+// Every column except `description` — the full posting text is most of a
+// vacancy's size and the list never shows it (GET /api/vacancies/:id does).
+const VACANCY_SUMMARY_SELECT = Object.fromEntries(
+  Object.values(Prisma.VacancyScalarFieldEnum)
+    .filter(field => field !== 'description')
+    .map(field => [field, true])
+) as Record<Exclude<Prisma.VacancyScalarFieldEnum, 'description'>, true>
+
+// `manual`: true = only vacancies pasted in by hand, false = only ones the
+// sources found, undefined = both.
+export async function getVacancies(filter: { status?: VacancyStatus; minScore?: number; manual?: boolean } = {}) {
   return await prisma.vacancy.findMany({
+    select: VACANCY_SUMMARY_SELECT,
     where: {
       ...(filter.status !== undefined ? { status: filter.status } : {}),
       ...(filter.minScore !== undefined ? { fitScore: { gte: filter.minScore } } : {}),
+      ...(filter.manual !== undefined ? { source: filter.manual ? 'manual' : { not: 'manual' } } : {}),
     },
     orderBy: [{ fitScore: 'desc' }, { fetchedAt: 'desc' }],
   })
@@ -126,9 +147,12 @@ export async function hasVacancy(source: string, externalId: string) {
 // SQL NULL (Prisma.DbNull), not the JSON value `null` — see the field's
 // comment in schema.prisma. `limit` bounds one batch (Phase 6: a scheduled
 // endpoint has to finish inside a serverless time limit).
+// Pasted-in vacancies (source "manual") are left out: the owner analyzes
+// those on purpose from /vacancies/check, and the automatic filter/triage
+// must not dismiss one behind their back.
 export async function getVacanciesPendingFilter(limit?: number) {
   return await prisma.vacancy.findMany({
-    where: { filterReasons: { equals: Prisma.DbNull } },
+    where: { filterReasons: { equals: Prisma.DbNull }, source: { not: 'manual' } },
     ...(limit !== undefined ? { take: limit } : {}),
   })
 }
@@ -138,17 +162,29 @@ export async function getVacanciesPendingFilter(limit?: number) {
 // no analysis attempt (triage or deep) has recorded a result yet. A
 // triage that decided "not worth a deep look" still writes to `analysis`
 // (see scripts/analyze-once.ts), so it isn't picked up again forever.
+// Oldest-touched first: a failed attempt bumps updatedAt (see
+// deferVacancyAnalysis), so a vacancy that keeps failing goes to the back
+// of the queue instead of blocking every batch.
 export async function getVacanciesPendingAnalysis(limit: number) {
   return await prisma.vacancy.findMany({
-    where: { status: { not: 'DISMISSED' }, analysis: { equals: Prisma.DbNull } },
-    orderBy: { fetchedAt: 'asc' },
+    where: { status: { not: 'DISMISSED' }, analysis: { equals: Prisma.DbNull }, source: { not: 'manual' } },
+    orderBy: { updatedAt: 'asc' },
     take: limit,
   })
 }
 
-// For the daily analysis cost cap: how many vacancies got a fitScore today.
+// After a failed analysis attempt: move the vacancy to the back of the
+// pending queue (see getVacanciesPendingAnalysis).
+export async function deferVacancyAnalysis(id: string) {
+  await prisma.vacancy.update({ where: { id }, data: { updatedAt: new Date() } })
+}
+
+// For the daily analysis cost cap: how many vacancies pipeline runs started
+// since `date` have deep-analyzed. Counted from PipelineRun rows rather than
+// Vacancy.updatedAt, which every status change (shortlist, dismiss) bumps.
 export async function countAnalyzedSince(date: Date) {
-  return await prisma.vacancy.count({ where: { fitScore: { not: null }, updatedAt: { gte: date } } })
+  const result = await prisma.pipelineRun.aggregate({ _sum: { analyzed: true }, where: { startedAt: { gte: date } } })
+  return result._sum.analyzed ?? 0
 }
 
 // Optimistic-concurrency write: only succeeds if this vacancy's `analysis`
@@ -168,10 +204,15 @@ export async function claimVacancyAnalysis(
       analysis: data.analysis,
       ...(data.fitScore !== undefined ? { fitScore: data.fitScore } : {}),
       ...(data.suggestedResume !== undefined ? { suggestedResume: data.suggestedResume } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
     },
   })
-  return result.count > 0
+  const claimed = result.count > 0
+  // The status only moves if the owner hasn't already decided on the
+  // vacancy (shortlisted it while it waited in the queue, say).
+  if (claimed && data.status !== undefined) {
+    await prisma.vacancy.updateMany({ where: { id, status: 'NEW' }, data: { status: data.status } })
+  }
+  return claimed
 }
 
 // A vacancy's source name becomes the application's source when it's one of

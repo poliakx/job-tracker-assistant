@@ -5,6 +5,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-900 border-b border-gray-300 pb-0.5 mb-2 mt-4">{children}</h2>
 }
 
+// A project split across repos (frontend + backend) shows all its links on
+// one entry. `links` can be missing on a resume saved before it existed.
+function projectLinks(p: { url: string; links?: string[] }): string[] {
+  return [p.url, ...(p.links ?? [])].filter(Boolean)
+}
+
 function stripProtocol(url: string): string {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '')
 }
@@ -86,22 +92,30 @@ export default function ResumeDocument({
         <>
           <SectionTitle>Projects</SectionTitle>
           <div className="space-y-2.5">
-            {content.projects.map((p, i) => (
-              <section key={i} className="break-inside-avoid">
-                <div className="flex justify-between gap-4">
-                  <span>
-                    <span className="font-semibold">{p.name}</span>
-                    {p.tech.length > 0 && <span className="text-gray-600"> | {p.tech.join(', ')}</span>}
-                  </span>
-                  {p.url && <span className="text-gray-600 whitespace-nowrap">{stripProtocol(p.url)}</span>}
-                </div>
-                <ul className="list-disc pl-5 mt-0.5 space-y-0.5">
-                  {p.bullets.map((b, j) => (
-                    <li key={j}>{b}</li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+            {content.projects.map((p, i) => {
+              const urls = projectLinks(p).map(stripProtocol)
+              // One link fits at the right of the title line; several (an app
+              // split into frontend/backend repos) would squeeze the title
+              // into a narrow column, so they get a line of their own.
+              const ownLine = urls.length > 1
+              return (
+                <section key={i} className="break-inside-avoid">
+                  <div className="flex justify-between gap-4">
+                    <span className="min-w-0">
+                      <span className="font-semibold">{p.name}</span>
+                      {p.tech.length > 0 && <span className="text-gray-600"> | {p.tech.join(', ')}</span>}
+                    </span>
+                    {urls.length === 1 && <span className="text-gray-600 shrink-0 whitespace-nowrap">{urls[0]}</span>}
+                  </div>
+                  {ownLine && <div className="text-[9.5pt] text-gray-600">{urls.join('  ·  ')}</div>}
+                  <ul className="list-disc pl-5 mt-0.5 space-y-0.5">
+                    {p.bullets.map((b, j) => (
+                      <li key={j}>{b}</li>
+                    ))}
+                  </ul>
+                </section>
+              )
+            })}
           </div>
         </>
       )}

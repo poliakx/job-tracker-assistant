@@ -17,7 +17,16 @@ export const ResumeContentSchema = z.object({
       bullets: z.array(z.string()),
     })
   ),
-  projects: z.array(z.object({ name: z.string(), url: z.string(), tech: z.array(z.string()), bullets: z.array(z.string()) })),
+  projects: z.array(
+    z.object({
+      name: z.string(),
+      url: z.string(),
+      // Default so resumes saved before this field existed still load.
+      links: z.array(z.string()).default([]),
+      tech: z.array(z.string()),
+      bullets: z.array(z.string()),
+    })
+  ),
   education: z.array(z.object({ institution: z.string(), degree: z.string(), period: z.string(), details: z.string() })),
   certifications: z.array(z.string()),
   languages: z.array(z.string()),

@@ -104,6 +104,9 @@ export default function ProfileOverview({ profile }: { profile: CandidateProfile
               </div>
               {p.description && <p className="text-gray-600 mt-0.5">{p.description}</p>}
               {p.tech.length > 0 && <p className="text-xs text-gray-500 mt-0.5">{p.tech.join(' · ')}</p>}
+              {[p.url, ...p.links].filter(Boolean).length > 0 && (
+                <p className="text-xs text-gray-500 mt-0.5 break-all">{[p.url, ...p.links].filter(Boolean).join(' · ')}</p>
+              )}
             </li>
           ))}
         </ul>
