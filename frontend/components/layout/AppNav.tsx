@@ -26,6 +26,13 @@ function matches(pathname: string, href: string) {
 // Only the most specific matching item is active, so /vacancies/check
 // doesn't also light up Vacancies on desktop. On mobile, where Check isn't
 // in the bar, Vacancies stays highlighted.
+// Clears the session cookie (only meaningful when APP_PASSWORD is set —
+// see middleware.ts), then a full reload so the middleware sends us to /login.
+async function signOut() {
+  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+  window.location.assign('/login')
+}
+
 function isActive(pathname: string, href: string, items = ITEMS) {
   if (!matches(pathname, href)) return false
   return !items.some(other => other.href.length > href.length && matches(pathname, other.href))
@@ -35,6 +42,7 @@ function isActive(pathname: string, href: string, items = ITEMS) {
 // thumb-reachable bottom bar matters more than a hamburger menu).
 export default function AppNav() {
   const pathname = usePathname() ?? '/'
+  if (pathname === '/login') return null
 
   return (
     <>
@@ -70,6 +78,14 @@ export default function AppNav() {
             )
           })}
         </nav>
+        <div className="mt-auto p-3 border-t border-gray-100">
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+          >
+            Sign out
+          </button>
+        </div>
       </aside>
 
       <nav className="md:hidden print:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white grid grid-cols-6">

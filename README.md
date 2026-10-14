@@ -87,11 +87,30 @@ npm test           # unit tests (Vitest)
 npm run lint       # ESLint, including the frontend/backend boundary rules
 ```
 
+## Access and deploying
+
+The app is single-user: one profile, one set of applications, no accounts.
+Everyone who can open an instance sees that owner's profile (with contact
+details) and spends their Anthropic API key. So:
+
+- **Using it yourself?** Clone the repo and run your own copy with your own
+  database and API key (see Getting started). A fresh copy starts from an
+  example profile in `backend/profile.ts` — run the interview on `/profile`
+  first, so matches and the resume are about you.
+- **Deploying it?** Set `APP_PASSWORD`. Every page then redirects to
+  `/login`, and every API route answers 401 without a session (an httpOnly
+  cookie, valid 30 days; changing the password signs everyone out). A
+  production build *without* `APP_PASSWORD` refuses every request rather
+  than run open. `/api/cron/*` keeps its own `CRON_SECRET` check.
+- Don't share one deployed instance between several people — it would
+  mean one shared profile. Each person runs their own.
+
 ## Environment variables
 
 | Variable | Required for | Notes |
 |---|---|---|
 | `DATABASE_URL` | everything | PostgreSQL connection string |
+| `APP_PASSWORD` | any deployed instance | the password for `/login`; leave empty locally — see [Access and deploying](#access-and-deploying) |
 | `ANTHROPIC_API_KEY` | every AI feature: profile interview, resume, English assessment, vacancy analysis | from console.anthropic.com; server-side only |
 | `CRON_SECRET` | the pipeline endpoint (only with `SCRAPING_ENABLED=true`) | any random string — generate one with `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` |
 | `ANALYSIS_MODEL_TRIAGE` / `ANALYSIS_MODEL_DEEP` | vacancy analysis | model IDs for the cheap triage pass and the deep analysis pass |
